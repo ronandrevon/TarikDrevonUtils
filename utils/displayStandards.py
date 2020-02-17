@@ -35,6 +35,7 @@ def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
                showOpt=1,ax=None,fig=None,texts=[],legOpt=1,lw=1,ms=5,fonts={},
                logOpt='',changeXYlims=True,gridOn=True,ticksOn=True,fullsize=False,title='',
                legLoc='upper left',legElt=[],xyTicks=[],colls=[],opt='',figsize=(9,9)):
+    '''fonts.keys=['lab','leg','tick','text','title']'''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
     fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
     if showOpt and not 'q' in opt : opt+='p'
@@ -49,23 +50,22 @@ def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
                     legLoc=legLoc,legElt=legElt,xyTicks=xyTicks,opt=opt)
     return fig,ax
 
-def addyAxis(fig,ax,plots,yLab='',c='k', lw=1,axPos=[],xlims=[],
-             legOpt=1,yTicks=[],yTickLabs=[], showOpt=1):
+def addyAxis(fig,ax,plots,yLab='',c='k', lw=1,ms=5,axPos=[],showOpt=1,yTicks=[],yTickLabs=[],
+             **kwargs):
     axPosI = axPos if len(axPos)==4  else [0.13, 0.15, 0.75, 0.75]
     ax2 = ax.twinx()
     pltPlots(ax2,plots,lw)
-    standardDisplay(ax2,['',yLab],c=['k',c],axPos=axPosI,legOpt=legOpt,
-                    xylims=xlims,xyTicks=[[],yTicks],xyTickLabs=[[],yTickLabs])
+    standardDisplay(ax2,['',yLab],c=['k',c],axPos=axPosI,xyTicks=[[],yTicks],xyTickLabs=[[],yTickLabs],
+                    **kwargs)
     ax.set_position(axPosI)
     if showOpt : plt.show()
 
-def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],xlims=[],
-            legOpt=1,xTicks=[],xTickLabs=[], showOpt=1):
+def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
+            xTicks=[],xTickLabs=[], **kwargs):
     axPosI = axPos if len(axPos)==4  else [0.13, 0.15, 0.8, 0.675]
     ax2 = ax.twiny()
     pltPlots(ax2,plots,lw)
-    standardDisplay(ax2,[xLab,''],c=[c,'k'],axPos=axPosI,legOpt=legOpt,
-                    xylims=xlims,xyTicks=[xTicks,[]],xyTickLabs=[xTickLabs,[]])
+    standardDisplay(ax2,[xLab,''],c=[c,'k'],axPos=axPosI,xyTicks=[xTicks,[]],xyTickLabs=[xTickLabs,[]],**kwargs)
     ax2.tick_params('x',color=c)
     ax2.set_xlabel(xLab, verticalalignment='bottom')
     ax.set_position(axPosI)

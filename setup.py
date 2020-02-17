@@ -20,5 +20,5 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'matplotlib','numpy','scipy','colorama',],
+        'matplotlib','numpy','scipy','colorama','pandas'],
 )

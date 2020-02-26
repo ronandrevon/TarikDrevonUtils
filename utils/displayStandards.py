@@ -1,6 +1,5 @@
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.widgets import RectangleSelector
 import numpy as np
 from .glob_colors import*
 from subprocess import check_output
@@ -16,7 +15,7 @@ screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 
 
 ###########################################################################
-#### def: plotting standards 
+#plotting standard
 def standardDisplay(ax,labs=['',''],name='', xylims=[], axPos=[],legOpt=1,
                     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,
                     gridOn=True,ticksOn=True,title='',legLoc='upper left',legElt=[],
@@ -46,19 +45,6 @@ def standardDisplay(ax,labs=['',''],name='', xylims=[], axPos=[],legOpt=1,
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt)
 
-def create_fig(figsize=(0.5,1),pad=None) : 
-    '''figsize : 
-        tuple : (width,height) normalized units
-        str   : f(full),12(half),22(quarter)
-    '''
-    if isinstance(figsize,str) : 
-        figsize = {'f':(1,1),'12':(0.5,1),'22':(0.5,0.5)}[figsize]
-    figsize = tuple(np.array(figsize)*screen_size)
-    fig,ax = plt.subplots(figsize=figsize,dpi=dpi[0])
-    #fig.canvas.manager.window.move(px,py)
-    if pad : plt.tight_layout(pad)
-    return fig,ax
-
 def stddisp(plots=[],scat=[],texts=[],colls=[],axPos=[],
             lw=1,ms=5,marker='o',fonts={},
             ax=None,fig=None,figsize=(0.5,1),pad=None,
@@ -77,7 +63,7 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],axPos=[],
     pltScatter(ax,scat,ms,marker)
     pltPlots(ax,plots,lw,ms)
     pltTexts(ax,texts,fsT)
-    standardDisplay(ax,axPos=axPos,fonts=fonts,opt=opt,**kwargs)
+    standardDisplay(ax,axPos=axPos,fonts=fonts,**kwargs)
     return fig,ax
 
 def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
@@ -120,17 +106,10 @@ def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
     ax.set_position(axPosI)
     if showOpt : plt.show()
 
-def get_font(d_font=dict(),dOpt=False) : 
-    keys = ['lab','leg','tick','text','title']
-    vals = [30,25,15,20,30]
-    font_dict = dict(zip(keys,vals))
-    for k in d_font.keys() : font_dict[k] = d_font[k]
-    if dOpt : keys = ['lab','leg','tick','title']
-    fonts = [ font_dict[k] for k in keys]
-    return  fonts
 
 ########################################################################
-#### def : utils 
+#plot calls
+########################################################################
 def pltPlots(ax,plots,lw0,ms0=5):
     if len(plots)==4:
         plots = [plots] if isinstance(plots[3],str) else plots
@@ -162,6 +141,31 @@ def pltScatter(ax,scat,s=5,marker='o') :
         if isinstance(c,tuple) or isinstance(c,str) : 
             c = [c]*N
         ax.scatter(x,y,s,c,marker=marker)
+
+########################################################################
+# handles and properties 
+########################################################################
+def create_fig(figsize=(0.5,1),pad=None) : 
+    '''figsize : 
+        tuple : (width,height) normalized units
+        str   : f(full),12(half),22(quarter)
+    '''
+    if isinstance(figsize,str) : 
+        figsize = {'f':(1,1),'12':(0.5,1),'22':(0.5,0.5)}[figsize]
+    figsize = tuple(np.array(figsize)*screen_size)
+    fig,ax = plt.subplots(figsize=figsize,dpi=dpi[0])
+    #fig.canvas.manager.window.move(px,py)
+    if pad : plt.tight_layout(pad)
+    return fig,ax
+
+def get_font(d_font=dict(),dOpt=False) : 
+    keys = ['lab','leg','tick','text','title']
+    vals = [30,25,15,20,30]
+    font_dict = dict(zip(keys,vals))
+    for k in d_font.keys() : font_dict[k] = d_font[k]
+    if dOpt : keys = ['lab','leg','tick','title']
+    fonts = [ font_dict[k] for k in keys]
+    return  fonts
 
 def getCML(C):
     ml = ''
@@ -235,7 +239,7 @@ def changeAxesLim(ax,mg,xylims=[],xyTicks=[],xyTickLabs=[[],[]]):
     # # sm = plt.cm.ScalarMappable(cmap=plt.get_cmap('Greys',ns));sm.set_array([]);
     # # cb=fig.colorbar(sm,boundaries=0.5+np.arange(ns+1),ticks=range(1,ns+1));cb.ax.set_yticklabels(['%d' %(n) for n in Ns])
 
-def get_axPos(axPosI):    
+def get_axPos(axPosI):
     axPos = {'bigTitle':[0.15,0.2,0.75,0.6],
         1:[0.13, 0.15, 0.75, 0.75],
         11:[0.1, 0.1, 0.35, 0.8],
@@ -254,188 +258,20 @@ def get_axPos(axPosI):
         # axPosition = axPosI
     return axPosition
 
-def saveFig(path, ax,png=None,fmt='png',opt='p'):
+def saveFig(fullpath, ax,png=None,fmt='png'):
     if not png==None : fmt=['eps','png'][png]
-    filename = path+'.'+fmt
+    filename = fullpath+'.'+fmt
     plt.savefig(filename, format=fmt, dpi=96)
-    print(green+'figure '+yellow+filename+green+' succesfully saved'+black)
+    print(green+'Saving figure :\n'+yellow+filename+black)
 
 def disp_quick(name,ax,opt):
     if 's' in opt : saveFig(name, ax,fmt='png')
     if 'p' in opt : plt.show()
     if 'c' in opt : plt.close()
-#Template for series of plots 
-''' 
-def stdMultDisp(X,Ys,cs=[],labs=[],iDs=[],xlabs=['',''],name='',xlims=[],axPos=[],showOpt=1):       
-    N     = len(Ys)
-    cs    = [ (0,(i+1)/N,0) for i in range(N)    ] if not any(cs)   else cs
-    labs  = [ '' for i in range(N)               ] if not any(labs) else labs   
-    plots = [[E,Ys[i],cs[i],'$G_{%s}$' %(labs[i])] for i in range(N) ]
-    stdDispPlt(plots,xlabs,name,xlims,axPos,showOpt)
-'''
-
-
 
 
 ###########################################################################
-#### defs : printing stuffs
-def valsToStr(v,n=2,f='E'):
-    if f == 'E':
-        if n==1:
-            vals = ['%.1E' %(val) for val in v];
-        elif n==2:
-            vals = ['%.2E' %(val) for val in v];
-        else:
-            vals = ['%.3E' %(val) for val in v]
-    elif f=='f' :
-        if n==1:
-            vals = ['%.1f' %(val) for val in v];
-        elif n==2:
-            vals = ['%.2f' %(val) for val in v];
-        else:
-            vals = ['%.3f' %(val) for val in v]
-    elif f=='d' :
-        vals = ['%d' %(val) for val in v];
-    return  '[' + ', '.join(vals) + ']'
-
-def printVals(v,f='E',prec=3):
-    values = ''
-    d  = {'f':0,'E':1}[f]
-    xp = lambda x:[
-        ['%.0f' %x,'%.1f' %x,'%.2f' %x,'%.3f' %x,'%.4f' %x ,'%.5f' %x,
-         '%.6f' %x,'%.7f' %x,'%.8f' %x,'%.9f' %x,'%.10f' %x],
-        ['%.0E' %x,'%.1E' %x,'%.2E' %x,'%.3E' %x,'%.4E' %x ,'%.5E' %x,
-         '%.6E' %x,'%.7E' %x,'%.8E' %x,'%.9E' %x,'%.10E' %x]][d][prec]
-    for val in v:
-        if isinstance(val,int):                        
-            values += '%-12d' %(val) 
-        elif isinstance(val,str):
-            values += '%-12s' %(val)
-        else:            
-            values += '%-12s' %(xp(val))
-    print(values)
-    
-def printKeys(k):
-    keys, line = ['','']
-    strLine = '-'*12
-    for key in k:
-        keys   = keys + '%-12s' %(key) 
-        line   = line + strLine      
-    print(keys)
-    print(line)
-    
-def printList(k,v):
-    keys ,values, line = ['','','']
-    strLine = '-'*10
-    for key,val in zip(k,v):
-        keyStr = '%-10s' %(key) if val >0 else '%-11s' %(key)
-        keys   = keys + keyStr
-        line   = line + strLine
-        values = values + '%.2E' %(val) + '  '        
-    print(keys)
-    print(line)
-    print(values)
-
-
-###########################################################################
-# Class : event Handler generic
-class eventHandlerStd:
-    def __init__(self,fig,ax,path):
-        self.cid  = fig.canvas.mpl_connect('key_press_event', self)
-        self.fig  = fig
-        self.ax   = ax
-        self.RS = RectangleSelector(
-            ax, self.line_select_callback, drawtype='box', useblit=True,
-            button=[1, 3],spancoords='pixels', minspanx=20,minspany=20 )
-        self.path = path
-
-        self.selectBox = [0.0,0.0,0.0,0.0]
-        self.params = {'paramTest':[0,1]}
-        plt.rcParams['keymap.save'] = ''
-    def __call__(self, event):
-        #print ('key entered: ' + key) 
-        if event.key=='s':
-            self.save()
-        if event.key=='l':
-            self.load()
-            
-        if event.key == '0':
-            self.action0()
-        if event.key in ['1','2','3','4','5','6','7','8','9']:
-            self.displayAx(int(event.key))
-        if event.key == 'enter':
-            self.returnAction()
-        if event.key == 'backspace':
-            self.backspaceAction()
-        if event.key == ' ':
-            self.spaceAction()
-        if event.key in ['up','right','left','down']:
-            self.arrowActions(event.key)
-        if event.key in ['a','q']:
-            self.activateBox(event.key)
-        if event.key in 'zertyuiopdfghjkmwxcvbn':
-            self.keyCallBack(event.key)
-        self.update()
-        
-    #can be overriden
-    def save(self):
-        saveFig(self.path, self.ax)
-    def load(self):
-        print('Base load ')
-    def update(self):
-        print('Base update')
-    
-    def keyCallBack(self,key):
-        print(key)
-    def activateBox(self,key):
-        if key == 'q':
-            self.activateRS(0)
-        if key == 'a':
-            self.activateRS(1)                
-    def activateRS(self,b):
-        if b==0:
-            print(' RectangleSelector deactivated.')
-            self.RS.set_active(False)
-        if b==1:
-            print(' RectangleSelector activated.')
-            self.RS.set_active(True)
-            
-    def line_select_callback(self,eclick, erelease):
-        x1, y1 = eclick.xdata, eclick.ydata
-        x2, y2 = erelease.xdata, erelease.ydata
-        self.selectBox = [x1,x2,y1,y2] 
-        print(self.selectBox)
-
-    def displayAx(self,i):
-        print('base display ' + str(i))
-    def action0(self):
-        print('base action0')
-    def returnAction(self):
-        print('base returnAction')
-    def backspaceAction(self):
-        print('base backspaceAction')
-    def spaceAction(self):
-        print('base spaceAction')
-    def arrowActions(self,key):
-        print('base arrowAction ' + key)
-        
-def arrowActionsParam(v,dv,key):
-    if key == 'up':
-        v = v+dv
-    if key == 'down':
-        v = v-dv
-        v = max(v,dv)
-    if key == 'right':
-        dv = 2*dv
-    if key == 'left':
-        dv = 0.5*dv
-    return v,dv
-
-
-
-
-###########################################################################
-#### def : handy
+#misc
 def getSymCurve(x,y,symOpt=1):
     x = np.concatenate((np.flipud(-x),x))
     y = np.concatenate((np.flipud(symOpt*y),y))
@@ -443,32 +279,10 @@ def getSymCurve(x,y,symOpt=1):
 
 
 
-###########################################################################
-##### defs : Tests
-###########################################################################
-def testHandler():
-    fig,ax = plt.subplots()
-    x = np.linspace(0,1,100)
-    ehd=eventHandler(fig,ax,'',x)
-    plt.show()
-def testPrint():
-    l = ['mue(meV)', 'muh(meV)', 'Ne(/cm^3)', 'Nh(/cm^3)', 'G(/cm)']
-    printKeys(l)
-    printVals([0.5,-0.8, 1.0*pow(10.,19),5.0*pow(10.,16), -250.023])
-    printVals([-0.5,-0.8, 1.0*pow(10.,19),+5.0*pow(10.,16), -250.023])
-    printVals([0.5,0.8, -1.0*pow(10.,18),5.0*pow(10.,16), 250.023])
-def testValsToStr(): 
-    v = [1.25254,3.2545,5.245,5.02]
-    print(valsToStr(v,1,'E'))
-    print(valsToStr(v,2))
-    print(valsToStr(v,3,''))
 
-def testGetCML(s):
-    c,m,l = getCML(s)
-    print('color, marker, linestyle')
-    print(c,m,l)
-
-################################ display tests
+###########################################################################
+#Tests
+###########################################################################
 def testStdDispPlt():
     nPts = 10
     x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
@@ -495,7 +309,7 @@ def testStdDispPlt_subplots():
     x = np.linspace(0,1,10)
     stdDispPlt([x,2*x,'b','$y1$'],['$x$','$y$'], ax=ax[0],axPos=11, showOpt=0)
     stdDispPlt([x,4*x,'r','$y2$'],['$t$','$y$'], ax=ax[1],axPos=12, showOpt=1,fullsize=True)
-    
+
 def testAddyAxis():
     nPts = 10
     x1   = np.linspace(-2,2,nPts);y1 = pow(x1,1)
@@ -503,7 +317,6 @@ def testAddyAxis():
     plotsAx2 = [x1,-y1,'b','']
     fig,ax = stdDispPlt(plotsAx1,['$x$','$y$'],c=['k','r'],legOpt=0,showOpt=0)
     addyAxis(fig,ax,plotsAx2,'$-y$',c='b', legOpt=0, showOpt=1)
-
 def testAddxAxis():
     x1 = np.linspace(-2,2,100);y1 = pow(x1,2)
     x2 = np.linspace(-1,1,100);y2 = pow(x2,2)
@@ -518,7 +331,6 @@ def testChangeAxLim():
     print(changeAxesLim(ax,0.05,xylims=[0,1.,0,2.]))
     print(changeAxesLim(ax,0.05,xylims=['x',0,1.]))
     print(changeAxesLim(ax,0.05,xylims=['y',0,2.]))
-
 def test_get_axPos():
     cmd ='get_axPos(1)' ; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos(11)'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
@@ -528,7 +340,6 @@ def test_get_axPos():
     cmd ='get_axPos([0.1, 0])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos([0.1, 0.1, 0.8, 0.8])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos((0.1, 0.1, 0.8, 0.8))'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-
 def testGetSymCurve():
     x = np.linspace(0,np.pi,100)
     x1,x2 = x,x
@@ -536,8 +347,11 @@ def testGetSymCurve():
     x1,y1 = getSymCurve(x1,y1,1)
     x2,y2 = getSymCurve(x2,y2,-1)
     stdDispPlt([[x1,y1,'b','$cos$'],[x2,y2,'r','$sin$']])
-
-def test_stddisp() : 
+def testGetCML(s):
+    c,m,l = getCML(s)
+    print('color, marker, linestyle')
+    print(c,m,l)
+def test_scat() : 
     x,y = np.random.rand(2,10)
     c   = ['b']*10
     s   = [5]*10
@@ -548,11 +362,23 @@ def test_stddisp() :
     stddisp(scat=[x,y,np.array(c)]  ,opt='q',legOpt=0)
     stddisp(scat=[x,y,ct]           ,opt='q',legOpt=0)
     stddisp(scat=[x,y,ct[0]]        ,opt='p',legOpt=0)
+def test_stddisp():
+    nPts = 10
+    x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
+    x2 = np.linspace(-2,2,nPts);y2 = pow(x2,2)
+    x3 = np.linspace(-2,2,nPts);y3 = pow(x3,3)
+    plots = [[x1,y1,'r+-.','$x$'  ,1],
+             [x2,y2,'gs--','$x^2$',2],
+             [x3,y3,'bo--','$x^3$',3]]
+    pol=matplotlib.patches.Polygon([[0,0],[0,1],[1,1]],label='$pol$')
+    coll = matplotlib.collections.PatchCollection([pol],'y',alpha=0.3,linewidth=2,edgecolor='g')
+    stddisp(plots=plots,colls=[coll],scat=[x1,y1,10,'b'],
+            texts=[[0.05,0.2,'This is text','m']],
+            labs=['$x$','$y$'], c=['k','b'],pad=2,
+            fonts={'text':30,'title':15,'lab':15,'tick':10,'leg':'20'},
+            legElt=[pol],opt='p')
 
 if __name__=='__main__':
-    #testHandler()
-    #testPrint()
-    #testValsToStr()
     #testGetCML('b:.<')
     #testStdDispPlt()
     #testStdDispPlt_b()
@@ -564,5 +390,6 @@ if __name__=='__main__':
     #print getCML(np.random.rand(3))
     #testGetSymCurve()
     #test_get_axPos()
+    #test_scat()
     #test_stddisp()
-    print(green+'displayStandards compiled'+black)
+    print(green+__file__.split('/')[-1]+' success'+black)

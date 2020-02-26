@@ -1,18 +1,24 @@
-from FourierUtils import*
-from scipy import signal 
-from setpath import*
+from .FourierUtils import*
+from .displayStandards import*
+from scipy import signal
 
-Tf,dt = 10000, 0.1
-T,nT,duty = 10,20,0.2
 
+#__all__=['base_test']
 def base_test():
+    ''' Show the Fourier transform of a square in  '''
+    Tf,dt = 10, 0.01
+    T,nT,duty = 1,1,1
+    
     yfunc = lambda t:np.array(squareBis(t,T,nT,duty),dtype=complex)
-    t,y,f,Y = Fourier(yfunc,Tf=Tf,dt=dt,fopt='s',dOpt='ft',pOpt='S',
-                      labOpts=['x','k'],xlims={'t':[-10,10,-0.1,1.1],'f':[]})        
-
-
+    t,y,f,Y = Fourier(yfunc,Tf=Tf,dt=dt,
+                      fopt='',dOpt='fts',pOpt='RIYP',
+                      labOpts=['x','k'],
+                      xlims={'t':[-10,10,-0.1,1.1],'f':[]})
 
 def test_showCase():
+    Tf,dt = 10000, 0.1
+    T,nT,duty = 10,20,0.2
+
     t = np.arange(0,Tf+dt,dt) - Tf/2
     fig,ax = plt.subplots(2,1)
 
@@ -48,4 +54,6 @@ def test_showCase():
     ax[1].yaxis.set_ticklabels([])
     plt.show()
 
-test_showCase()
+if __name__=="__main__":
+    base_test()
+    #test_showCase()

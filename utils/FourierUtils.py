@@ -1,15 +1,16 @@
-from setpath import*
-#from scipy import integrate
+from .displayStandards import*
+#import matplotlib.pyplot as plt
 from scipy import signal
-import matplotlib.pyplot as plt
+from math import*
 
+#__all__ = ['Fourier','get_FFT']
 #### def : Main user interface
 def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=lambda x:np.zeros((x.size)),
             dOpt='ftc',xlims={'t':[],'f':[]},pOpt='RIYP',labOpts=['t','f']):
-    '''
-    fopt(Fourier opt)   : 's(sym)p(periodic)r(real)
-    dOpt(display opt)   : 'f(freq)t(time)c(compare)
-    pOpt(plot opt)      : 'R(real)I(imag)Y(abs)P(phase)
+    ''' where : 
+- fopt(Fourier opt)   : 's(sym) p(periodic)r(real)
+- dOpt(display opt)   : 'f(freq)t(time)c(compare)d(fourierParams)s(spit Phase)
+- pOpt(plot opt)      : 'R(real)I(imag)Y(abs)P(phase)
     '''
     symOpt,fft_func = 's' in fopt, [get_FFT,get_rFFT]['r' in fopt]
 
@@ -20,15 +21,18 @@ def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=lambda x:np.zeros((x.size)),
     if 'f' in dOpt or 'c' in dOpt:
         f,Y = fft_func(t,y,dt,'p' in fopt)
     
-    df,fmax = fftParams(dt,Tf,dopt=1)
-    axF,axT = None,None
-    if 'f' in dOpt and 't' in dOpt:
-        fig,ax = plt.subplots(nrows=2,ncols=1);#mng = plt.get_current_fig_manager(); mng.resize(*mng.window.maxsize())
-        axT,axF = ax; axT.set_position(get_axPos(11)); axF.set_position(get_axPos(12))
+    df,fmax = fftParams(dt,Tf,dopt='d' in pOpt)
+    #axF,axT = None,None
+    nrows=2 if 'f' in dOpt and 't' in dOpt else 1
+    ncols=2 if 's' in dOpt else 1
+    fs=12;fonts=[fs]*5 #[fs,fsLeg,fsL,fsT ]
+    fig,ax = plt.subplots(nrows=nrows,ncols=ncols);#mng = plt.get_current_fig_manager(); mng.resize(*mng.window.maxsize())
+    plt.tight_layout(pad=0.75)
+    axT,axF = ax; #axT.set_position(get_axPos(11)); axF.set_position(get_axPos(12))
     if 't' in dOpt:
-        displayFourier(t,y,labOpt=labOpts[0],opt=pOpt,ax=axT,xlims=xlims['t'],showOpt=0)
+        displayFourier(t,y,labOpt=labOpts[0],opt=pOpt,ax=axT,xlims=xlims['t'],showOpt=0,fonts=fonts)
     if 'f' in dOpt:
-        displayFourier(f,Y,labOpt=labOpts[1],opt=pOpt,ax=axF,xlims=xlims['f'],showOpt=0)
+        displayFourier(f,Y,labOpt=labOpts[1],opt=pOpt,ax=axF,xlims=xlims['f'],showOpt=0,fonts=fonts)
     if 'c' in dOpt:
         Yth = Yfunc(f)
         compareFourier(f,Y,Yth,xlims=xlims['f'],showOpt=0)
@@ -36,11 +40,21 @@ def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=lambda x:np.zeros((x.size)),
     return t,y,f,Y
 
 def get_FFT(t,y,dt,pOpt=False):
+    ''' pOpt : periodic option hence divide by sample size'''
     N = t.size #shape[0]
     Y = np.fft.fftshift(np.fft.fft(y)*[dt,1./N][pOpt])
     f = np.fft.fftshift(np.fft.fftfreq(N,dt))
+    #Y = np.fft.fft(y)*[dt,1./N][pOpt]
+    #f = np.fft.fftfreq(N,dt)
     #f[:int(N/2)],Y[:int(N/2)]
     return f,Y
+
+def get_iFFT(f,F,df,pOpt=False):
+    ''' pOpt : periodic option hence divide by sample size'''
+    N = f.size #shape[0]
+    y = np.fft.ifft(F)*[df,1./N][pOpt]
+    t = np.fft.fftfreq(N,df)
+    return t,y
 
 def get_rFFT(t,y,dt,Tf=0):
     N = t.size
@@ -49,23 +63,31 @@ def get_rFFT(t,y,dt,Tf=0):
     return f,Y
 
 def fftParams(dt,Tf,dopt=1):
+    ''' Tf : total length in time of the signal '''
     df,fmax   = 1./Tf, 0.5/dt
     if dopt==1:
         printParams(['Tf','dt', 'df','fmax'],[Tf,dt,df,fmax],s=4)
     if dopt==2:
-        printParams(['sx','dx', 'dX','Xmax'],[Tf,dt,df,fmax],s=4)        
+        printParams(['sx','dx', 'dX','Xmax'],[Tf,dt,df,fmax],s=4)
     return df,fmax
 
 ###########################################################################
 #### def : display 
-def displayFourier(f,Y,labs=[],labOpt='f',opt='RIYPS',ax=None,xlims=[],showOpt=1):
+def displayFourier(f,Y,labs=[],labOpt='f',opt='RIYPS',ax=None,xlims=[],showOpt=1,fonts=[]):
     plts = {'R':[f,np.real(Y),'c','$Re$'], 'Y':[f,np.abs(Y)   ,'b','$||$'],
             'I':[f,np.imag(Y),'m','$Im$'], 'P':[f,np.angle(Y) ,'r','$\Phi$'],
             'S':[f,np.power(np.abs(Y),2),'g','$S$']}
-    plots = [plts[p] for p in opt if p in 'RIYPS']
-    labs = {'t':['$t$','$y$'],'f':['$f$','$F$'],
-            'x':['$x$','$F$'],'k':['$k$','$F$']}[labOpt]
-    stdDispPlt(plots,labs,ax=ax,xlims=xlims,showOpt=showOpt)
+    labs = {'t':['$t$','$y$'],'f':['$f$','$F_y$'],
+            'x':['$x$','$y$'],'k':['$k$','$F_y$']}[labOpt]
+
+    if isinstance(ax,np.ndarray):
+        plots = [plts[p] for p in opt if p in 'RI']
+        stdDispPlt(plots,labs,ax=ax[0],xlims=xlims,showOpt=0,fonts=fonts)
+        plots = [plts[p] for p in opt if p in 'YPS']
+        stdDispPlt(plots,labs,ax=ax[1],xlims=xlims,showOpt=showOpt,fonts=fonts)
+    else : 
+        plots = [plts[p] for p in opt if p in 'RIYPS']
+        stdDispPlt(plots,labs,ax=ax,xlims=xlims,showOpt=showOpt,fonts=fonts)
     
 def compareFourier(f,Y,Yth,xlims=[0,5,0,1],showOpt=1):
     plots = [[f,np.abs(Y),'g'   ,'$|Y|$'     ],
@@ -159,6 +181,6 @@ if __name__ =='__main__':
     #testFourier('basic')
     #testFourier('gauss',{'f0':0.0,'tau0':1.5,'t0':0.0,'phi0':0.0})
     #testFourier('cos'  ,{'f0':0.0,'tau0':1.5,'t0':0.0,'phi0':pi/3})
-    testFourier('expi' ,{'f0':2.0,'tau0':1.5,'t0':0.0,'phi0':pi/3})
+    #testFourier('expi' ,{'f0':2.0,'tau0':1.5,'t0':0.0,'phi0':pi/3})
     #test_square()
     print('FourierTest compiled');print("")

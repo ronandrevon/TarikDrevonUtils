@@ -1,0 +1,4 @@
+from sympy import exp,log,symbols,oo,integrate
+
+x=symbols('x')
+x=integrate(x**2*exp(-x),(x,0,oo))

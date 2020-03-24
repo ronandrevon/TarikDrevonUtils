@@ -4,8 +4,8 @@ import setuptools
 #    long_description = fh.read()
 
 setuptools.setup(
-    name="utils",
-    version="0.0.1",
+    name="TarikDrevonUtils",
+    version="0.0.3",
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some utilities",

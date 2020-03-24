@@ -3,24 +3,27 @@ from .displayStandards import*
 from scipy import signal
 from math import*
 
-#__all__ = ['Fourier','get_FFT']
+__all__ = ['Fourier','get_FFT','displayFourier','plot_fft2d',
+'squareBis','unit_impulse','fftParams']
 #### def : Main user interface
-def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=lambda x:np.zeros((x.size)),
-            dOpt='ftc',xlims={'t':[],'f':[]},pOpt='RIYP',labOpts=['t','f']):
-    ''' where : 
+def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',dOpt='ftc',pOpt='RIYP',
+            xlims={'t':[],'f':[]},labOpts=['t','f'],
+            Yth=lambda x:np.zeros((x.size))):
+    ''' where :
 - fopt(Fourier opt)   : 's(sym) p(periodic)r(real)
 - dOpt(display opt)   : 'f(freq)t(time)c(compare)d(fourierParams)s(spit Phase)
 - pOpt(plot opt)      : 'R(real)I(imag)Y(abs)P(phase)
+- Yth : lambda function to compare against
     '''
     symOpt,fft_func = 's' in fopt, [get_FFT,get_rFFT]['r' in fopt]
 
-    #Signal and Fourier 
+    #Signal and Fourier
     t = np.arange(0,Tf,dt) - Tf/2*symOpt
     if 't' in dOpt or 'c' in dOpt:
         y = yfunc(t)
     if 'f' in dOpt or 'c' in dOpt:
         f,Y = fft_func(t,y,dt,'p' in fopt)
-    
+
     df,fmax = fftParams(dt,Tf,dopt='d' in pOpt)
     #axF,axT = None,None
     nrows=2 if 'f' in dOpt and 't' in dOpt else 1
@@ -34,8 +37,7 @@ def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=lambda x:np.zeros((x.size)),
     if 'f' in dOpt:
         displayFourier(f,Y,labOpt=labOpts[1],opt=pOpt,ax=axF,xlims=xlims['f'],showOpt=0,fonts=fonts)
     if 'c' in dOpt:
-        Yth = Yfunc(f)
-        compareFourier(f,Y,Yth,xlims=xlims['f'],showOpt=0)
+        compareFourier(f,Y,Yth(f),xlims=xlims['f'],showOpt=0)
     plt.show()
     return t,y,f,Y
 
@@ -72,23 +74,44 @@ def fftParams(dt,Tf,dopt=1):
     return df,fmax
 
 ###########################################################################
-#### def : display 
+#### def : display
+def plot_fft2d(f,F,xy=None,kxy=None):
+    '''
+    f : function 2D NxN ndarray
+    F : fft2D(f)
+    xy,kxy : extent in real and reciprocal spaces
+    '''
+    fig,((axm,axM),(axp,axP))=plt.subplots(nrows=2,ncols=2)
+    plt.tight_layout()
+    plot_ax2D(axm,np.real(f),'$|f|$',xy)
+    plot_ax2D(axp,angle(F),'$\phi(F)$',kxy,'P')
+    plot_ax2D(axM,np.abs(F)**2,'$|F|^2$',kxy,'F')
+    plot_ax2D(axP,np.abs(F),'$|F|$',kxy,'F')
+    fig.show()
+    return fig
+def plot_ax2D(ax,f,title='',extent=None,opt='P',cmap='jet',org='lower'):
+    A=f #/f.max()#;print(A)
+    vmin,vmax=A.min(),A.max()
+    if opt == 'P' : vmin,vmax = 0,2*pi
+    if opt == 'F' : vmin=min(A.min(),0)
+    ax.imshow(A,cmap=cmap,origin=org,extent=extent)#,vmax=vmax, vmin=vmin)
+    ax.set_title(title)
+
 def displayFourier(f,Y,labs=[],labOpt='f',opt='RIYPS',ax=None,xlims=[],showOpt=1,fonts=[]):
     plts = {'R':[f,np.real(Y),'c','$Re$'], 'Y':[f,np.abs(Y)   ,'b','$||$'],
             'I':[f,np.imag(Y),'m','$Im$'], 'P':[f,np.angle(Y) ,'r','$\Phi$'],
             'S':[f,np.power(np.abs(Y),2),'g','$S$']}
     labs = {'t':['$t$','$y$'],'f':['$f$','$F_y$'],
             'x':['$x$','$y$'],'k':['$k$','$F_y$']}[labOpt]
-
     if isinstance(ax,np.ndarray):
         plots = [plts[p] for p in opt if p in 'RI']
         stdDispPlt(plots,labs,ax=ax[0],xlims=xlims,showOpt=0,fonts=fonts)
         plots = [plts[p] for p in opt if p in 'YPS']
         stdDispPlt(plots,labs,ax=ax[1],xlims=xlims,showOpt=showOpt,fonts=fonts)
-    else : 
+    else :
         plots = [plts[p] for p in opt if p in 'RIYPS']
         stdDispPlt(plots,labs,ax=ax,xlims=xlims,showOpt=showOpt,fonts=fonts)
-    
+
 def compareFourier(f,Y,Yth,xlims=[0,5,0,1],showOpt=1):
     plots = [[f,np.abs(Y),'g'   ,'$|Y|$'     ],
              [f,Yth      ,'b--' ,'$|Y|_{th}$']]
@@ -98,21 +121,29 @@ def compareFourier(f,Y,Yth,xlims=[0,5,0,1],showOpt=1):
 
 ###########################################################################
 #### def : Misc
+def angle(x,ee=1e-10) :
+    '''Prevents round off errors from polluting the phase'''
+    return ((np.abs(x)>ee)*np.angle(x)+
+            ((abs(np.real(x))<ee) & (abs(np.imag(x)>ee)))*pi/2*np.sign(np.imag(x))+
+            ((abs(np.imag(x))<ee) & (abs(np.real(x)>ee)))*pi*np.sign(np.real(x))+
+            2*pi) %(2*pi)
 def getFourierPair(t,opt=0, f0=1.0,tau0=0.1,t0=0.0,phi0=0.0):
     fy = {'cos':lambda t:np.cos(2*pi*f0*(t-t0)+phi0),
           'sin':lambda t:np.sin(2*pi*f0*(t-t0)+phi0),
           'exp':lambda t:np.cos(2*pi*f0*(t-t0)+phi0)*np.exp(-np.power((t-t0)/(tau0/2),2)),
           'gau':lambda t:np.exp(-tau0*np.power(t,2))}
-
     y = fy[opt](t)
     return y
+def get_extents(a,npts):
+    dx=a/npts
+    xy = [0,a]*2
+    kxy = np.fft.fftshift(np.fft.fftfreq(npts,dx))[[0,-1]].tolist()*2
+    return xy,kxy
 def unit_impulse(n,i):
-    y = np.zeros((n))
-    y[i] = 1
+    y = np.zeros((n));y[i] = 1
     return y
-    
 def square(t,T,nT):
-    N,nT0 = t.size,nT/2 
+    N,nT0 = t.size,nT/2
     y = np.zeros((int(N/2)))
     t0=t+t[-1];t0=t0[t0<T*(nT0+0.5*nT%2)]
     if nT%2:
@@ -136,7 +167,7 @@ def squareBis(t,T,nT,duty=0.5,applyScale=True):
             y = scale*signal.square(2*pi*(t+(duty+0.5*(1-duty))*T)/T,duty)+scale*applyScale
         y[t<-T*nT*0.5]=0;y[t>+T*nT*0.5]=0;
     return y
-    
+
 ###########################################################################
 #### def : test
 ###########################################################################
@@ -146,14 +177,14 @@ def testDisplayFourier():
     displayFourier(t,np.exp(2j*pi*t),opt='RI')
     displayFourier(t,np.exp(2j*pi*t),opt='YP')
     displayFourier(t,np.exp(2j*pi*t),opt='Y')
-    
+
 def testFourier(y='gauss',params={'f0':0.0,'tau0':1.0,'t0':0,'phi0':0}):
 
     f0,tau0,t0,phi0 = [params.get(key) for key in ['f0','tau0','t0','phi0']]
     if y=='basic':
         yfunc,Yfunc = lambda t:np.exp(-t*t), lambda f:sqrt(pi)*np.exp(-pi**2*f*f)
         Fourier(yfunc,Tf=100,dt=0.01,fopt='s',Yfunc=Yfunc,dOpt='ft',pOpt='Y',
-                xlims={'t':[-4,4,0,1],'f':[0,1,0,2]})        
+                xlims={'t':[-4,4,0,1],'f':[0,1,0,2]})
     if y=='gauss':
         Df  = 1.0/(pi*tau0/2);
         yfunc = lambda t:np.exp(2j*pi*f0*(t-t0)+1j*phi0)*np.exp(-np.power((t-t0)/(tau0/2),2))
@@ -166,17 +197,17 @@ def testFourier(y='gauss',params={'f0':0.0,'tau0':1.0,'t0':0,'phi0':0}):
         Fourier(yfunc,Tf=100,dt=0.01,fopt='rp',Yfunc=Yfunc,dOpt='ftc',pOpt='R',
                 xlims={'t':[0,5,-1,1],'f':[0,4,0,1]})
     elif y=='expi':
-        yfunc = lambda t:np.exp(2j*pi*f0*(t-t0)+1j*phi0)        
+        yfunc = lambda t:np.exp(2j*pi*f0*(t-t0)+1j*phi0)
         Fourier(yfunc,Tf=100,dt=0.01,fopt='p',dOpt='ft',pOpt='RIY',
-                xlims={'t':[0,5,-1.1,1.1],'f':[f0-0.1,f0+0.1,-0.1,1.1]})        
+                xlims={'t':[0,5,-1.1,1.1],'f':[f0-0.1,f0+0.1,-0.1,1.1]})
 def test_square():
     t,T = np.linspace(-10,10,1000),2
     Ns = [2,5,np.Inf]
     cs = getCs('jet',len(Ns))
     plots = [[t,squareBis(t,T,Ns[i],0.25,applyScale=False),cs[i],'$%s$' %Ns[i]] for i in range(len(Ns))]
     stdDispPlt(plots,['$t$','$y$'])
-    
-if __name__ =='__main__':    
+
+if __name__ =='__main__':
     #testDisplayFourier()
     #testFourier('basic')
     #testFourier('gauss',{'f0':0.0,'tau0':1.5,'t0':0.0,'phi0':0.0})

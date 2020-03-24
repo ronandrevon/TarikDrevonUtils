@@ -1,6 +1,7 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from .glob_colors import*
 from subprocess import check_output
 
@@ -13,16 +14,17 @@ screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True)
 screen_size=screen_size[int(len(screen_size)>2)]
 screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 
-
 ###########################################################################
 #plotting standard
 def standardDisplay(ax,labs=['',''],name='', xylims=[], axPos=[],legOpt=1,
                     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,
                     gridOn=True,ticksOn=True,title='',legLoc='upper left',legElt=[],
-                    xyTicks=[],xyTickLabs=[[],[]],mg=0.05,opt='',setPos=False,equal=False):
-    ''' opt : p(plot), s(save), c(close) '''
+                    xyTicks=[],xyTickLabs=[[],[]],mg=0.05,opt='p',setPos=False,equal=False):
+    ''' opt : p(plot), s(save), c(close) '
+        name :
+    '''
     axPos = get_axPos(axPos); #print(axPos)
-    ax.name = name; 
+    ax.name = name;
     if isinstance(fonts,dict) : fonts = get_font(fonts,dOpt=True)
     fs,fsLeg,fsL,fsT = fonts; #print(fsLeg)
     #xy axis and labels
@@ -39,7 +41,7 @@ def standardDisplay(ax,labs=['',''],name='', xylims=[], axPos=[],legOpt=1,
     if equal : ax.axis('equal')
     ax.set_axisbelow(True)
     ax.axis(['off','on'][ticksOn])
-    if changeXYlims : 
+    if changeXYlims :
         changeAxesLim(ax,mg, xylims,xyTicks,xyTickLabs)
     ax.set_title(title, {'fontsize': fsT}); #print(title)
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
@@ -51,7 +53,7 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],axPos=[],
             **kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
-    fonts,lw,ms,maker : 
+    fonts,lw,ms,maker :
     '''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
     fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
@@ -125,32 +127,32 @@ def pltTexts(ax,texts,fsT):
         c = 'k' if len(t)<4 else t[3]
         ax.text(t[0],t[1],t[2],fontsize=fsT,color=c)
 
-def pltScatter(ax,scat,s=5,marker='o') : 
+def pltScatter(ax,scat,s=5,marker='o') :
     '''scat : [x,y,s,c]
-            : [x,y,c] 
+            : [x,y,c]
            s : int or list/np.array of int
            c : tuple,str or list/np.array of tuple/str'''
-    if len(scat) : 
+    if len(scat) :
         if len(scat)==4:
             x,y,s,c = scat
         elif len(scat)==3:
             x,y,c = scat
         N=np.array(x).size
-        if isinstance(s,int) : 
+        if isinstance(s,int) :
             s = [s]*N
-        if isinstance(c,tuple) or isinstance(c,str) : 
+        if isinstance(c,tuple) or isinstance(c,str) :
             c = [c]*N
         ax.scatter(x,y,s,c,marker=marker)
 
 ########################################################################
-# handles and properties 
+# handles and properties
 ########################################################################
-def create_fig(figsize=(0.5,1),pad=None) : 
-    '''figsize : 
+def create_fig(figsize=(0.5,1),pad=None) :
+    '''figsize :
         tuple : (width,height) normalized units
         str   : f(full),12(half),22(quarter)
     '''
-    if isinstance(figsize,str) : 
+    if isinstance(figsize,str) :
         figsize = {'f':(1,1),'12':(0.5,1),'22':(0.5,0.5)}[figsize]
     figsize = tuple(np.array(figsize)*screen_size)
     fig,ax = plt.subplots(figsize=figsize,dpi=dpi[0])
@@ -158,7 +160,7 @@ def create_fig(figsize=(0.5,1),pad=None) :
     if pad : plt.tight_layout(pad)
     return fig,ax
 
-def get_font(d_font=dict(),dOpt=False) : 
+def get_font(d_font=dict(),dOpt=False) :
     keys = ['lab','leg','tick','text','title']
     vals = [30,25,15,20,30]
     font_dict = dict(zip(keys,vals))
@@ -177,7 +179,7 @@ def getCML(C):
         c,m,l,ml = C[0],'','-',C[1:]
     else:
         c,m,l= 'b','','-'
-        
+
     if not ml == '':
         l = [char for char in ml if char in '-.:']    ;l=''.join(l)
         m = [char for char in ml if char not in '-.:'];m=''.join(m)
@@ -199,6 +201,11 @@ def getCs(name,N):
     cs = [cmap(float(i+1)/N)[0:3] for i in range(N)]
     return cs
 
+def get_lines(CS):
+    '''get coordinates of iso-contours'''
+    coords = [c.get_paths()[0].vertices for c in CS.collections]
+    return coords
+
 def changeAxesLim(ax,mg,xylims=[],xyTicks=[],xyTickLabs=[[],[]]):
     data = ax.dataLim.bounds
     xm,ym,W,H = data
@@ -218,7 +225,7 @@ def changeAxesLim(ax,mg,xylims=[],xyTicks=[],xyTickLabs=[[],[]]):
         ax.set_zlim((zmin, zmax));#print('ok')
     ax.set_xlim((xmin, xmax))
     ax.set_ylim((ymin, ymax))
-    
+
     xylims = [xmin, xmax,ymin, ymax]
     # change ticks
     if any(xyTicks) :
@@ -258,16 +265,23 @@ def get_axPos(axPosI):
         # axPosition = axPosI
     return axPosition
 
-def saveFig(fullpath, ax,png=None,fmt='png'):
-    if not png==None : fmt=['eps','png'][png]
-    filename = fullpath+'.'+fmt
+def get_figpath(file,rel_path):
+    figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
+    return figpath
+
+def saveFig(fullpath, ax,png=None,fmt=''):
+    if '.' in fullpath:
+        filename,fmt=fullpath,fullpath.split('.')[-1]
+    else:
+        if not png==None : fmt=['eps','svg','png'][png]
+        filename = fullpath+'.'+fmt
     plt.savefig(filename, format=fmt, dpi=96)
     print(green+'Saving figure :\n'+yellow+filename+black)
 
 def disp_quick(name,ax,opt):
     if 's' in opt : saveFig(name, ax,fmt='png')
-    if 'p' in opt : plt.show()
-    if 'c' in opt : plt.close()
+    if 'p' in opt : ax.figure.show()
+    if 'c' in opt : plt.close(ax.figure)
 
 
 ###########################################################################
@@ -351,7 +365,7 @@ def testGetCML(s):
     c,m,l = getCML(s)
     print('color, marker, linestyle')
     print(c,m,l)
-def test_scat() : 
+def test_scat() :
     x,y = np.random.rand(2,10)
     c   = ['b']*10
     s   = [5]*10

@@ -8,7 +8,7 @@ __all__ = ['Fourier','get_FFT','displayFourier','plot_fft2d',
 #### def : Main user interface
 def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',dOpt='ftc',pOpt='RIYP',
             xlims={'t':[],'f':[]},labOpts=['t','f'],
-            Yth=lambda x:np.zeros((x.size))):
+            Yth=lambda x:np.zeros((x.size)),figsize='12'):
     ''' where :
 - fopt(Fourier opt)   : 's(sym) p(periodic)r(real)
 - dOpt(display opt)   : 'f(freq)t(time)c(compare)d(fourierParams)s(spit Phase)
@@ -19,31 +19,31 @@ def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',dOpt='ftc',pOpt='RIYP',
 
     #Signal and Fourier
     t = np.arange(0,Tf,dt) - Tf/2*symOpt
-    if 't' in dOpt or 'c' in dOpt:
-        y = yfunc(t)
-    if 'f' in dOpt or 'c' in dOpt:
-        f,Y = fft_func(t,y,dt,'p' in fopt)
+    y = yfunc(t)
+    f,Y = fft_func(t,y,dt,'p' in fopt)
 
+    #display
     df,fmax = fftParams(dt,Tf,dopt='d' in pOpt)
-    #axF,axT = None,None
-    nrows=2 if 'f' in dOpt and 't' in dOpt else 1
-    ncols=2 if 's' in dOpt else 1
-    fs=12;fonts=[fs]*5 #[fs,fsLeg,fsL,fsT ]
-    fig,ax = plt.subplots(nrows=nrows,ncols=ncols);#mng = plt.get_current_fig_manager(); mng.resize(*mng.window.maxsize())
-    plt.tight_layout(pad=0.75)
-    axT,axF = ax; #axT.set_position(get_axPos(11)); axF.set_position(get_axPos(12))
+    if 't' in dOpt or 'f' in dOpt:
+        nrows=2 if 'f' in dOpt and 't' in dOpt else 1
+        ncols=2 if 's' in dOpt else 1
+        fs=12;fonts=[fs]*5 #[fs,fsLeg,fsL,fsT ]
+        fig,ax= create_fig(figsize=figsize,pad=0.75,rc=[nrows,ncols])
+        axT,axF=ax
     if 't' in dOpt:
         displayFourier(t,y,labOpt=labOpts[0],opt=pOpt,ax=axT,xlims=xlims['t'],showOpt=0,fonts=fonts)
     if 'f' in dOpt:
         displayFourier(f,Y,labOpt=labOpts[1],opt=pOpt,ax=axF,xlims=xlims['f'],showOpt=0,fonts=fonts)
     if 'c' in dOpt:
-        compareFourier(f,Y,Yth(f),xlims=xlims['f'],showOpt=0)
-    plt.show()
+        fig_c=compareFourier(f,Y,Yth(f),xlims=xlims['f'],showOpt=0)
+        fig_c.show()
+    if 't' in dOpt or 'f' in dOpt:
+        fig.show()
     return t,y,f,Y
 
-def get_FFT(t,y,dt,pOpt=False):
+def get_FFT(t,y,dt=0,pOpt=False):
     ''' pOpt : periodic option hence divide by sample size'''
-    N = t.size #shape[0]
+    N,dt = t.size,t[1]-t[0] #shape[0]
     Y = np.fft.fftshift(np.fft.fft(y)*[dt,1./N][pOpt])
     f = np.fft.fftshift(np.fft.fftfreq(N,dt))
     #Y = np.fft.fft(y)*[dt,1./N][pOpt]
@@ -51,11 +51,11 @@ def get_FFT(t,y,dt,pOpt=False):
     #f[:int(N/2)],Y[:int(N/2)]
     return f,Y
 
-def get_iFFT(f,F,df,pOpt=False):
+def get_iFFT(f,F,df=0,pOpt=False):
     ''' pOpt : periodic option hence divide by sample size'''
-    N = f.size #shape[0]
-    y = np.fft.ifft(F)*[df,1./N][pOpt]
-    t = np.fft.fftfreq(N,df)
+    N,df = f.size,f[1]-f[0] #shape[0]
+    y = np.fft.fftshift(np.fft.ifft(F)*[df,1./N][pOpt])
+    t = np.fft.fftshift(np.fft.fftfreq(N,df))
     return t,y
 
 def get_rFFT(t,y,dt,Tf=0):
@@ -75,14 +75,15 @@ def fftParams(dt,Tf,dopt=1):
 
 ###########################################################################
 #### def : display
-def plot_fft2d(f,F,xy=None,kxy=None):
+def plot_fft2d(f,F,xy=None,kxy=None,figsize='12',pad=None):
     '''
     f : function 2D NxN ndarray
     F : fft2D(f)
     xy,kxy : extent in real and reciprocal spaces
     '''
-    fig,((axm,axM),(axp,axP))=plt.subplots(nrows=2,ncols=2)
-    plt.tight_layout()
+    #fig,((axm,axM),(axp,axP))=plt.subplots(nrows=2,ncols=2)
+    #plt.tight_layout()
+    fig,((axm,axM),(axp,axP)) = create_fig(figsize,pad,rc='22')
     plot_ax2D(axm,np.real(f),'$|f|$',xy)
     plot_ax2D(axp,angle(F),'$\phi(F)$',kxy,'P')
     plot_ax2D(axM,np.abs(F)**2,'$|F|^2$',kxy,'F')
@@ -115,8 +116,8 @@ def displayFourier(f,Y,labs=[],labOpt='f',opt='RIYPS',ax=None,xlims=[],showOpt=1
 def compareFourier(f,Y,Yth,xlims=[0,5,0,1],showOpt=1):
     plots = [[f,np.abs(Y),'g'   ,'$|Y|$'     ],
              [f,Yth      ,'b--' ,'$|Y|_{th}$']]
-    stdDispPlt(plots,['$f$','$Y$'],xlims=xlims,showOpt=showOpt)
-
+    fig_c,ax=stdDispPlt(plots,['$f$','$Y$'],xlims=xlims,showOpt=showOpt)
+    return fig_c
 
 
 ###########################################################################

@@ -7,3 +7,5 @@ blue    = Fore.BLUE
 yellow  = Fore.YELLOW
 black   = Fore.RESET
 rst_c   = Fore.RESET
+
+unicolor=lambda x:(x,x,x)

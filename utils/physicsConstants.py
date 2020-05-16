@@ -42,6 +42,7 @@ mu0     = 4*math.pi*pow(10.,-7)          #H.m
 hbar    = 1.0545718*pow(10,-34)     #J.s
 h       = 2*math.pi*hbar;                #J.s
 m0      = 9.1093856*pow(10,-31)     #kg
+emass   = 510.99906                 #keV
 c       = 299792458                 #m/s
 
 

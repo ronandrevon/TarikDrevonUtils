@@ -1,11 +1,11 @@
-import matplotlib
+'''Display utilities'''
+import matplotlib,os
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
-import matplotlib.pyplot as plt
-import numpy as np
-import os
 from .glob_colors import*
 from subprocess import check_output
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Get screen info, remove toolbar
 #matplotlib.rcParams['toolbar'] = 'None'
@@ -17,72 +17,95 @@ screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True)
 screen_size=screen_size[int(len(screen_size)>2)]
 screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 
+#__all__ = []
 ###########################################################################
-#plotting standard
-def standardDisplay(ax,labs=['',''],name='', xylims=[], axPos=[],legOpt=1,view=None,
-                    fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,
-                    gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='upper left',legElt=[],
-                    xyTicks=None,xyTickLabs=None,mg=0.05,opt='p',setPos=False,equal=False,
-                    pOpt=None):
+#def : plotting standard
+###########################################################################
+def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=1,view=None,
+    fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
+    gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='upper left',legElt=[],
+    figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
+    pOpt=None):
     '''
     opt : p(plot), s(save), c(close) '
     pOpt : p(setPos)X(changeXYlims)l(legOpt)t(ticksOn)e(equal),G(gridOn),g(gridmOn)
     view : [elev,azim] for 3D projection axes
     '''
     if isinstance(pOpt,str):
-        setPos,changeXYlims,legOpt,ticksOn,equal = [s in pOpt for s in 'pXlte']
+        setPos,changeXYlims,legOpt,ticksOn,equal,gridOn,gridmOn = [s in pOpt for s in 'pXlteGg']
     axPos = get_axPos(axPos); #print(changeXYlims)
     ax.name = name;
     if isinstance(fonts,dict) : fonts = get_font(fonts,dOpt=True)
     fs,fsLeg,fsL,fsT = fonts; #print(fsLeg)
-    #xy axis and labels
+    #axis, labels, position
     if 'x' in logOpt : ax.set_xscale('log')
     if 'y' in logOpt : ax.set_yscale('log')
     ax.set_xlabel(labs[0],fontsize=fs   ,color=c[0])
     ax.set_ylabel(labs[1],fontsize=fs   ,color=c[1])
-    if len(labs)==3 : ax.set_zlabel(labs[2],fontsize=fs   ,color=c[1])
+    if is_3d : ax.set_zlabel(labs[2],fontsize=fs   ,color=c[1])
+    ax.axis(['off','on'][ticksOn])
+    ax.set_axisbelow(True)
+    if equal : ax.axis('equal')
+    if setPos : ax.set_position(axPos);#print(axPos)
+    #lims,ticks and grid
+    xylims=changeAxesLim(ax,mg,xylims,is_3d);#print(is_3d,xylims)
+    change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
     ax.tick_params('x',labelsize=fsL    ,colors=c[0])
     ax.tick_params('y',labelsize=fsL    ,colors=c[1])
-    #position,grid,title,legend,save
-    if setPos : ax.set_position(axPos);#print(axPos)
-    if gridOn : ax.grid(gridOn,which='major',color=(0.9,0.9,0.9),linestyle='-')
-    if gridmOn : ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='-')
-    if equal : ax.axis('equal')
-    ax.set_axisbelow(True)
-    ax.axis(['off','on'][ticksOn])
-    if changeXYlims :changeAxesLim(ax,mg, xylims,xyTicks,xyTickLabs)
+    if is_3d : ax.tick_params('z',labelsize=fsL,colors=c[1])
+    ax.grid(False);#print(gridOn,gridmOn)
+    if gridOn  : ax.grid(gridOn,which='major',color=(0.9,0.9,0.9),linestyle='-')
+    if gridmOn :
+        ax.minorticks_on()
+        ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='--')
     if view : ax.view_init(elev=view[0], azim=view[1])
+    #title,legend,save
     ax.set_title(title, {'fontsize': fsT}); #print(title)
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
-    disp_quick(name,ax,opt)
+    disp_quick(name,ax,opt,figopt)
 
-def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,
-            lw=1,ms=5,marker='o',fonts={},axPos=[],imOpt='',cmap='jet',
+def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,surfs=[],
+            lw=1,ms=5,marker='o',fonts={},axPos=None,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',inset=None,
-            **kwargs):
+            std=1,**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
     fonts,lw,ms,maker :
+    axPos : 4-list or int - ax position (see get_axPos)
+    kwargs : standardDisplay
     '''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
     fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
     if not ax : fig,ax = create_fig(figsize,pad,rc)
-    if ax and axPos==[] : axPos=ax.get_position().bounds
+    if ax and not axPos : axPos=ax.get_position().bounds
     #add lines,patches,texts,scatters
+    is_3d = not isinstance(ax,matplotlib.axes._subplots.Subplot) #;print(is_3d)
     for coll in colls : ax.add_collection(coll)
-    pltPlots(ax,plots,lw,ms)
-    pltTexts(ax,texts,fsT)
+    pltPlots(ax,plots,lw,ms,is_3d)
+    pltTexts(ax,texts,fsT,is_3d)
     cs_i = pltImages(ax,im,cmap)
     cs_s = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+    if is_3d : pltSurfs(ax,surfs)
     if 'c' in imOpt :
-        if cs_i : cb_i=fig.colorbar(cs_i,ax=ax)
-        if cs_s : cb_s=fig.colorbar(cs_s,ax=ax)
+        cs = cs_i #if not cs_s else cs_s
+        if not cs : cs = plt.cm.ScalarMappable(plt.Normalize(vmin=0,vmax=1),cmap=cmap)
+        l,L = 0.03,0.85
+        if 'h' in imOpt:
+            orient,tickloc='horizontal','top'
+            ax_cb = fig.add_axes([0.1,0.9,L,l])
+        else :
+            orient,tickloc = 'vertical','right'
+            ax_cb = fig.add_axes([0.9,0.1,l,L])
+        if cs : cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
+        #if cs_s : cb_s=fig.colorbar(cs_s,ax=ax_cb,orientation=orient)
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
         ax2=add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'])
-    standardDisplay(ax,axPos=axPos,fonts=fonts,**kwargs)
+    if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
     return fig,ax
-
+#def get_cb
+#######################################################################
+###### Old one
 def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
                showOpt=1,ax=None,fig=None,texts=[],legOpt=1,lw=1,ms=5,fonts={},
                logOpt='',changeXYlims=True,gridOn=True,ticksOn=True,fullsize=False,title='',
@@ -129,25 +152,41 @@ def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5):#,**kwargs)
     standardDisplay(ax2,labs=['',''],xylims=xylims,setPos=False,
         xyTicks=None,xyTickLabs=[[],[]],legOpt=0)#,**kwargs)
     return ax2
-########################################################################
-#plot calls
-########################################################################
-def pltPlots(ax,plots,lw0,ms0=5):
-    if len(plots)>3:
-        if isinstance(plots[3],str) : plots = [plots]
-    for p in plots:
-        cml = 'b' if len(p)<3 else p[2]
-        lab = ''  if len(p)<4 else p[3]
-        lw  = lw0 if len(p)<5 else p[4]
-        c,m,l = getCML(cml)
-        ax.plot(p[0],p[1],label=lab,color=c,linestyle=l,marker=m, linewidth=lw,markersize=ms0)
 
-def pltTexts(ax,texts,fsT):
-    if any(texts):
-        texts = [texts] if not isinstance(texts[0],list) else texts
-    for t in texts:
-        c = 'k' if len(t)<4 else t[3]
-        ax.text(t[0],t[1],t[2],fontsize=fsT,color=c)
+########################################################################
+### def : plot calls
+########################################################################
+def pltPlots(ax,plots,lw0,ms0=5,is_3d=0):
+    ''' plots a list of plots :
+        - [x,y,color]([x,y,z,color] if is_3d) + [label](optional)
+    '''
+    if plots :
+        if len(plots)>=3+is_3d and isinstance(plots[2+is_3d],str):
+            plots = [plots]; print(len(plots))
+    if is_3d :
+        for p in plots:
+            cml = 'b' if len(p)<4 else p[3]
+            lab = ''  if len(p)<5 else p[4]
+            c,m,l = getCML(cml)
+            ax.plot(p[0],p[1],p[2],label=lab,color=c,linestyle=l,marker=m, linewidth=lw0,markersize=ms0)
+    else:
+        for p in plots:
+            cml = 'b' if len(p)<3 else p[2]
+            lab = ''  if len(p)<4 else p[3]
+            lw  = lw0 if len(p)<5 else p[4]
+            c,m,l = getCML(cml)
+            ax.plot(p[0],p[1],label=lab,color=c,linestyle=l,marker=m, linewidth=lw,markersize=ms0)
+def pltTexts(ax,texts,fsT,is_3d=0):
+    ''''texts format : [x,y,text,color], [x,y,z,txt,color] if is_3d'''
+    if texts:
+         if not isinstance(texts[0],list) : texts = [texts]
+    if is_3d :
+        for t in texts:
+            ax.text(t[0],t[1],t[2],t[3],fontsize=fsT,color=t[4])
+    else:
+        for t in texts:
+            c_t = 'k' if len(t)<4 else t[3]
+            ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t)
 def pltImages(ax,im=None,cmap='viridis'):
     cs = None
     if isinstance(im,list):
@@ -183,6 +222,14 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
         else :
             cs=ax.scatter(x,y,s,c,marker=marker,cmap=cmap)
     return cs
+def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
+    '''surf : [x,y,z] or [x,y,z,c,a,lw,ec]
+    '''
+    for surf in surfs:
+        x,y,z = surf[:3]
+        if len(surf)>3 : c,a,lw,ec = surf[3:]
+        ax.plot_surface(x,y,z,color=c,alpha=a,linewidth=lw,edgecolor=c)
+
 ########################################################################
 # handles and properties
 ########################################################################
@@ -198,6 +245,8 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
         rc = {'3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
     figsize = tuple(np.array(figsize)*screen_size)
     if rc=='3d':
+        wh = min(screen_size)
+        figsize = (wh,wh);#print(figsize)
         fig = plt.figure(figsize=figsize,dpi=dpi[0])
         ax = plt.subplot(111,projection='3d')
     else:
@@ -246,6 +295,7 @@ def get_legElt(legElt):
             legE+=[Line2D([0],[0],linewidth=2,linestyle=l,color=c,marker=m,label=lab)]
     return legE
 def addLegend(ax,fsLeg,legOpt,loc='upper left',legElt=[]):
+    legOpt = any(ax.get_legend_handles_labels()[0])
     if legOpt:
         out = None
         if loc[-4:]==' out' :
@@ -256,7 +306,7 @@ def addLegend(ax,fsLeg,legOpt,loc='upper left',legElt=[]):
             legElt = get_legElt(legElt)
             leg = ax.legend(handles=legElt,fontsize=fsLeg,loc=loc)
         else:
-            print('loc:',loc,',out:',out)
+            #print('loc:',loc,',out:',out)
             leg = ax.legend(fontsize=fsLeg,loc=loc,bbox_to_anchor=out)
         leg.set_draggable(True)         # matplotlib 3.1
         #leg.draggable(True)            # matplotlib 2.2
@@ -272,43 +322,68 @@ def get_lines(CS):
     coords = [c.get_paths()[0].vertices for c in CS.collections]
     return coords
 
-def changeAxesLim(ax,mg,xylims=[],xyTicks=[],xyTickLabs=[[],[]]):
-    data = np.array(ax.dataLim.bounds,dtype=float)
-    data[data==np.inf]=1;data[data==-np.inf]=-1;data[data==np.nan]=0;
-    xm,ym,W,H = data
-    xM = xm+W; yM = ym+H
-    xmin,xmax = xm-mg*W, xM+mg*W
-    ymin,ymax = ym-mg*H, yM+mg*H
-    #change limits
-    if   len(xylims)==4:
+def get_lims(ax,mg,xylims=None,is_3d=0):
+    if not xylims:
+        if is_3d :
+            xmin,xmax = ax.get_xlim3d()
+            ymin,ymax = ax.get_ylim3d()
+            zmin,zmax = ax.get_zlim3d()
+            Wx,Wy,Wz = xmax-xmin,ymax-ymin,zmax-zmin
+            xmin,xmax = xmin-mg*Wx, xmax+mg*Wx
+            ymin,ymax = ymin-mg*Wy, ymax+mg*Wy
+            zmin,zmax = zmin-mg*Wz, zmax+mg*Wz
+            xylims = [xmin,xmax,ymin,ymax,zmin,zmax]
+        else:
+            # data = np.array(ax.dataLim.bounds,dtype=float)
+            # data[data==np.inf]=1;data[data==-np.inf]=-1;data[data==np.nan]=0;
+            xmin,xmax = ax.get_xlim()
+            ymin,ymax = ax.get_ylim()
+            W,H = xmax-xmin,ymax-ymin
+            xmin,xmax = xmin-mg*W, xmax+mg*W
+            ymin,ymax = ymin-mg*H, ymax+mg*H
+            xylims = [xmin,xmax,ymin,ymax]
+    return xylims
+
+def changeAxesLim(ax,mg,xylims=[],is_3d=0):
+    xylims = get_lims(ax,mg,xylims,is_3d)
+    if len(xylims)==4:
         xmin,xmax,ymin,ymax = xylims
+    elif len(xylims)==6:
+        xmin,xmax,ymin,ymax,zmin,zmax = xylims
     elif len(xylims)==3:
         if xylims[0]=='x':
             xmin,xmax = xylims[1:3]
         if xylims[0]=='y':
             ymin,ymax = xylims[1:3]
-    elif len(xylims)==6:
-        xmin,xmax,ymin,ymax,zmin,zmax = xylims
-        ax.set_zlim((zmin, zmax));#print('ok')
     ax.set_xlim((xmin, xmax))
     ax.set_ylim((ymin, ymax))
-
-    xylims = [xmin, xmax,ymin, ymax]
-    # change ticks
-    if xyTicks or xyTickLabs:
-        if not (xyTicks) : xyTicks = [abs(xmin-xmax)/5,abs(ymin-ymax)/5]
-        if not (xyTickLabs) : xyTickLabs = [None,None]
-        dx,dy = xyTicks
-        lab_x,lab_y = xyTickLabs;#print(lab_x,lab_y)
-        if isinstance(lab_x,list):
-            plt.xticks(np.arange(xmin,xmax,dx),lab_x)
-        else:
-            plt.xticks(np.arange(xmin,xmax,dx))
-        if isinstance(lab_y,list):
-            plt.yticks(np.arange(ymin,ymax,dy),lab_y)
-        else:
-            plt.yticks(np.arange(ymin,ymax,dy))
+    xylims = [xmin,xmax,ymin,ymax]
+    if is_3d :
+        ax.set_zlim((zmin, zmax))
+        xylims +=[zmin, zmax]
     return xylims
+
+def get_tick_array(ticks,ndim,xylims):
+    if isinstance(ticks,float) : ticks = [ticks]*ndim
+    for i in range(ndim):
+        if isinstance(ticks[i],float) :
+            ticks[i]=np.arange(xylims[2*i+0],xylims[2*i+1],ticks[i])
+    return ticks
+def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):
+    ndim = [2,3][is_3d]
+    if ticks :
+        ticks = get_tick_array(ticks,ndim,xylims)
+        ax.set_xticks(ticks[0])
+        ax.set_yticks(ticks[1])
+        if is_3d : ax.set_zticks(ticks[2])
+    if ticks_m :
+        ticks_m = get_tick_array(ticks_m,ndim,xylims)
+        ax.set_xticks(ticks_m[0],minor=True)
+        ax.set_yticks(ticks_m[1],minor=True)
+    if tick_labs:
+        ax.set_xticklabels(tick_labs[0])
+        ax.set_yticklabels(tick_labs[1])
+        if is_3d : ax.set_yticklabels(tick_labs[2])
 
 # def add_cb(ax):
 #     sm = plt.cm.ScalarMappable(cmap=plt.get_cmap('Greys',ns));sm.set_array([]);
@@ -316,22 +391,18 @@ def changeAxesLim(ax,mg,xylims=[],xyTicks=[],xyTickLabs=[[],[]]):
 #     cb.ax.set_yticklabels(['%d' %(n) for n in Ns])
 
 def get_axPos(axPosI):
-    axPos = {'bigTitle':[0.15,0.2,0.75,0.6],
-        1:[0.13, 0.15, 0.75, 0.75],
+    axPos = {'T':[0.2,0.12,0.75,0.75],
+        1:[0.15, 0.11, 0.82, 0.82],
         11:[0.1, 0.1, 0.35, 0.8],
         12:[0.6, 0.1, 0.35, 0.8],
         21:[0.07, 0.1, 0.9, 0.4],
         22:[0.07, 0.6, 0.9, 0.4],
         31:[0.15, 0.18, 0.75, 0.75]}
     axPosition = axPos[1]
-    if isinstance(axPosI,int):
-        if axPosI in axPos.keys():
-            axPosition = axPos[axPosI]
-    elif isinstance(axPosI,list) or isinstance(axPosI,tuple):
-        if len(axPosI)==4:
-            axPosition = axPosI
-    # elif isinstance(axPosI,matplotlib.transforms.Bbox):
-        # axPosition = axPosI
+    if isinstance(axPosI,list) or isinstance(axPosI,tuple):
+        if len(axPosI)==4 : axPosition = axPosI
+    elif axPosI in axPos.keys():
+        axPosition = axPos[axPosI]
     return axPosition
 
 def basename(file):
@@ -341,23 +412,35 @@ def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
     return figpath
 
-def saveFig(fullpath, ax,png=None,fmt='',opt='1'):
+def saveFig(fullpath,ax,png=None,fmt='',opt='1'):
     '''opt : t(transparent) i(quality dpi=i*96)'''
     if '.' in fullpath:
         filename,fmt=fullpath,fullpath.split('.')[-1]
     else:
         if not png==None : fmt=['eps','svg','png'][png]
         filename = fullpath+'.'+fmt
-    if 't' in opt : opt=opt[1:]
+    topt = 0
+    if 't' in opt : opt,topt=opt[1:],1
     r_dpi= 1 if not opt else int(opt); #print(r_dpi)
-    plt.savefig(filename, format=fmt, dpi=r_dpi*96,transparent='t' in opt)
+    plt.savefig(filename, format=fmt, dpi=r_dpi*96,transparent=topt)
     print(green+'Saving figure :\n'+yellow+filename+black)
 
-def disp_quick(name,ax,opt):
-    if 's' in opt : saveFig(name, ax,fmt='png')
+def crop_fig(name,crop):
+        cropcmd = "%dx%d+%d+%d" %tuple(crop)
+        cmd = "convert %s -crop %s %s" %(name,cropcmd,name)
+        check_output(cmd,shell=True)
+        print(yellow+name+blue+' cropped to '+black,cropcmd)
+
+def disp_quick(name,ax,opt,figopt):
+    if 's' in opt : saveFig(name,ax,fmt='png',opt=figopt)
     if 'p' in opt : ax.figure.show()
     if 'c' in opt : plt.close(ax.figure)
 
+def im2gif(figpattern,fmt='svg'):
+    cmd='im2gif '+figpattern +' ' + fmt
+    print(magenta+cmd+'  ...'+black)
+    out=check_output(['/bin/bash','-i','-c',cmd]).decode()
+    print(green+out+black)
 
 ###########################################################################
 #misc
@@ -370,9 +453,9 @@ def getSymCurve(x,y,symOpt=1):
 
 
 ###########################################################################
-#Tests
+#_tests
 ###########################################################################
-def testStdDispPlt():
+def _testStdDispPlt():
     nPts = 10
     x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
     x2 = np.linspace(-2,2,nPts);y2 = pow(x2,2)
@@ -383,30 +466,30 @@ def testStdDispPlt():
     xlabs = ['$x$','$y$']
     stdDispPlt(plots,xlabs, axPos=[0.12, 0.12, 0.8, 0.8], c=['k','b'],
                fonts=[30,25,12,25], texts=[[0.05,0.2,'O','m']])
-def testStdDispPlt_b():
+def _testStdDispPlt_b():
     x = np.linspace(0,1,10)
     plots       = [x,x,'b','x']
     plotsList   = [plots]
     stdDispPlt(plots, showOpt=0)
     stdDispPlt(plotsList)
-def testStdDispPlt_c():
+def _testStdDispPlt_c():
     x = np.linspace(0,1,10)
     plots       = [x,x,[(1.0,0.5,0.2),'s-.'],'x']
     stdDispPlt(plots, showOpt=1)
-def testStdDispPlt_subplots():
+def _testStdDispPlt_subplots():
     fig,ax = plt.subplots(nrows=1,ncols=2)
     x = np.linspace(0,1,10)
     stdDispPlt([x,2*x,'b','$y1$'],['$x$','$y$'], ax=ax[0],axPos=11, showOpt=0)
     stdDispPlt([x,4*x,'r','$y2$'],['$t$','$y$'], ax=ax[1],axPos=12, showOpt=1,fullsize=True)
 
-def testAddyAxis():
+def _testAddyAxis():
     nPts = 10
     x1   = np.linspace(-2,2,nPts);y1 = pow(x1,1)
     plotsAx1 = [x1,+y1,'r' ,'']
     plotsAx2 = [x1,-y1,'b','']
     fig,ax = stdDispPlt(plotsAx1,['$x$','$y$'],c=['k','r'],legOpt=0,showOpt=0)
     addyAxis(fig,ax,plotsAx2,'$-y$',c='b', legOpt=0, showOpt=1)
-def testAddxAxis():
+def _testAddxAxis():
     x1 = np.linspace(-2,2,100);y1 = pow(x1,2)
     x2 = np.linspace(-1,1,100);y2 = pow(x2,2)
     plotsAx1 = [x1,y1,'r' ,'$x^2$']
@@ -414,13 +497,13 @@ def testAddxAxis():
     fig,ax = stdDispPlt(plotsAx1,['$x$','$y$'],c=['k','k'],legOpt=0,showOpt=0)
     addxAxis(ax,plotsAx2,'$x_2$',c='b', showOpt=1)
 
-def testChangeAxLim():
+def _testChangeAxLim():
     fig,ax = plt.subplots();plt.plot(range(5),range(5))
     print(changeAxesLim(ax,0.05,xylims=[]))
     print(changeAxesLim(ax,0.05,xylims=[0,1.,0,2.]))
     print(changeAxesLim(ax,0.05,xylims=['x',0,1.]))
     print(changeAxesLim(ax,0.05,xylims=['y',0,2.]))
-def test_get_axPos():
+def _test_get_axPos():
     cmd ='get_axPos(1)' ; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos(11)'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos(21)'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
@@ -429,18 +512,18 @@ def test_get_axPos():
     cmd ='get_axPos([0.1, 0])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos([0.1, 0.1, 0.8, 0.8])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
     cmd ='get_axPos((0.1, 0.1, 0.8, 0.8))'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-def testGetSymCurve():
+def _testGetSymCurve():
     x = np.linspace(0,np.pi,100)
     x1,x2 = x,x
     y1,y2 = np.cos(x1),np.sin(x2)
     x1,y1 = getSymCurve(x1,y1,1)
     x2,y2 = getSymCurve(x2,y2,-1)
     stdDispPlt([[x1,y1,'b','$cos$'],[x2,y2,'r','$sin$']])
-def testGetCML(s):
+def _testGetCML(s):
     c,m,l = getCML(s)
     print('color, marker, linestyle')
     print(c,m,l)
-def test_scat() :
+def _test_scat() :
     x,y = np.random.rand(2,10)
     c   = ['b']*10
     s   = [5]*10
@@ -451,7 +534,7 @@ def test_scat() :
     stddisp(scat=[x,y,np.array(c)]  ,opt='q',legOpt=0)
     stddisp(scat=[x,y,ct]           ,opt='q',legOpt=0)
     stddisp(scat=[x,y,ct[0]]        ,opt='p',legOpt=0)
-def test_stddisp():
+def _test_stddisp():
     nPts = 10
     x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
     x2 = np.linspace(-2,2,nPts);y2 = pow(x2,2)
@@ -468,17 +551,17 @@ def test_stddisp():
             legElt=[pol],opt='p')
 
 if __name__=='__main__':
-    #testGetCML('b:.<')
-    #testStdDispPlt()
-    #testStdDispPlt_b()
-    #testStdDispPlt_c()
-    #testStdDispPlt_subplots()
-    #testAddxAxis()
-    #testAddyAxis()
-    #testChangeAxLim()
-    #print getCML(np.random.rand(3))
-    #testGetSymCurve()
-    #test_get_axPos()
-    #test_scat()
-    #test_stddisp()
+    #_testGetCML('b:.<')
+    #_testStdDispPlt()
+    #_testStdDispPlt_b()
+    #_testStdDispPlt_c()
+    #_testStdDispPlt_subplots()
+    #_testAddxAxis()
+    #_testAddyAxis()
+    #_testChangeAxLim()
+    #_testGetSymCurve()
+    #_test_get_axPos()
+    #_test_scat()
+    #_test_stddisp()
+    #print(getCML(np.random.rand(3))
     print(green+__file__.split('/')[-1]+' success'+black)

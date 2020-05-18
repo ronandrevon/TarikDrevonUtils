@@ -2,6 +2,8 @@
 import matplotlib,os
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
+from matplotlib.collections import PatchCollection as PatchColl
+from matplotlib.patches import Rectangle
 from .glob_colors import*
 from subprocess import check_output
 import matplotlib.pyplot as plt
@@ -21,7 +23,7 @@ screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 ###########################################################################
 #def : plotting standard
 ###########################################################################
-def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=1,view=None,
+def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,view=None,
     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
     gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='upper left',legElt=[],
     figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
@@ -46,7 +48,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=1,view
     ax.axis(['off','on'][ticksOn])
     ax.set_axisbelow(True)
     if equal : ax.axis('equal')
-    if setPos : ax.set_position(axPos);#print(axPos)
+    if setPos : ax.set_position(axPos);
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d);#print(is_3d,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
@@ -65,8 +67,9 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=1,view
     disp_quick(name,ax,opt,figopt)
 
 def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,surfs=[],
-            lw=1,ms=5,marker='o',fonts={},axPos=None,imOpt='',cmap='jet',
-            ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',inset=None,
+            lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
+            ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
+            inset=None,iOpt='Gt',
             std=1,**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
@@ -100,8 +103,15 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,surfs=[],
         #if cs_s : cb_s=fig.colorbar(cs_s,ax=ax_cb,orientation=orient)
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
-        ax2=add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'])
+        in_box = inset['xylims']
+        xy,Wrect,Hrect = (in_box[0],in_box[2]),in_box[1]-in_box[0],in_box[3]-in_box[2]
+        ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec='g',lw=inset['lwp']))
+        ax2 = add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'],iOpt)
+        for axis in ['top','bottom','left','right']:
+            ax2.spines[axis].set_linewidth(3)
+            ax2.spines[axis].set_color('g')
     if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
+
     return fig,ax
 #def get_cb
 #######################################################################
@@ -146,11 +156,11 @@ def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
     ax.set_position(axPosI)
     if showOpt : plt.show()
 
-def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5):#,**kwargs)
+def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='G'):#,**kwargs)
     ax2 = fig.add_axes(axPosI)
     pltPlots(ax2,plots,lw,ms)
     standardDisplay(ax2,labs=['',''],xylims=xylims,setPos=False,
-        xyTicks=None,xyTickLabs=[[],[]],legOpt=0)#,**kwargs)
+        xyTicks=None,xyTickLabs=[[],[]],legOpt=0,pOpt=iOpt)#,**kwargs)
     return ax2
 
 ########################################################################
@@ -162,7 +172,7 @@ def pltPlots(ax,plots,lw0,ms0=5,is_3d=0):
     '''
     if plots :
         if len(plots)>=3+is_3d and isinstance(plots[2+is_3d],str):
-            plots = [plots]; print(len(plots))
+            plots = [plots]; #print(len(plots))
     if is_3d :
         for p in plots:
             cml = 'b' if len(p)<4 else p[3]
@@ -265,8 +275,8 @@ def get_font(d_font=dict(),dOpt=False) :
     fonts = [ font_dict[k] for k in keys]
     return  fonts
 def fill_inset_dict(inset_dict=dict()):
-    keys = ['axpos','xylims','ms','lw']
-    vals = [[0,0,0.25,0.25],None,30,3]
+    keys = ['axpos','xylims','ms','lw','lwp']
+    vals = [[0,0,0.25,0.25],None,30,3,2]
     full_dict = dict(zip(keys,vals))
     for k,v in inset_dict.items() : full_dict[k]=v
     return full_dict
@@ -294,8 +304,8 @@ def get_legElt(legElt):
             c,m,l=getCML(cml)
             legE+=[Line2D([0],[0],linewidth=2,linestyle=l,color=c,marker=m,label=lab)]
     return legE
-def addLegend(ax,fsLeg,legOpt,loc='upper left',legElt=[]):
-    legOpt = any(ax.get_legend_handles_labels()[0])
+def addLegend(ax,fsLeg,legOpt=None,loc='upper left',legElt=[]):
+    if legOpt == None : legOpt = any(ax.get_legend_handles_labels()[0])
     if legOpt:
         out = None
         if loc[-4:]==' out' :
@@ -364,9 +374,9 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0):
     return xylims
 
 def get_tick_array(ticks,ndim,xylims):
-    if isinstance(ticks,float) : ticks = [ticks]*ndim
+    if isinstance(ticks,float) or isinstance(ticks,int) : ticks = [ticks]*ndim
     for i in range(ndim):
-        if isinstance(ticks[i],float) :
+        if isinstance(ticks[i],float) or isinstance(ticks[i],int):
             ticks[i]=np.arange(xylims[2*i+0],xylims[2*i+1],ticks[i])
     return ticks
 def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):

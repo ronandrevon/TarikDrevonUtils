@@ -8,6 +8,8 @@ import scipy.special as spe
 import pandas as pd
 
 
+from . import regionManager as regMg
+from . import materialManager as matMg
 from .physicsConstants import *
 from .glob_colors import *
 from .displayStandards import *

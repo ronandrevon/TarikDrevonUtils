@@ -1,4 +1,3 @@
-#eVmatMg
 mat = {
 
 'Eg' : 1.12, #eV

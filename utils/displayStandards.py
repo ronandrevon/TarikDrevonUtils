@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Get screen info, remove toolbar
-#matplotlib.rcParams['toolbar'] = 'None'
+# matplotlib.rcParams['toolbar'] = 'None'
 matplotlib.rcParams['backend'] = 'GTK3Agg'
 dpi = check_output("xdpyinfo | awk '/resolution/{print $2}'",shell=True).decode()
 dpi = np.array(dpi.strip().split('x'),dtype=int)
@@ -52,8 +52,8 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d);#print(is_3d,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
-    ax.tick_params('x',labelsize=fsL    ,colors=c[0])
-    ax.tick_params('y',labelsize=fsL    ,colors=c[1])
+    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='in')
+    ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='in')
     if is_3d : ax.tick_params('z',labelsize=fsL,colors=c[1])
     ax.grid(False);#print(gridOn,gridmOn)
     if gridOn  : ax.grid(gridOn,which='major',color=(0.9,0.9,0.9),linestyle='-')
@@ -66,7 +66,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt,figopt)
 
-def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,surfs=[],
+def stddisp(plots=[],scat=[],texts=[],colls=[],patches=[],im=None,surfs=[],
             lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
             inset=None,iOpt='Gt',
@@ -84,6 +84,7 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],im=None,surfs=[],
     #add lines,patches,texts,scatters
     is_3d = not isinstance(ax,matplotlib.axes._subplots.Subplot) #;print(is_3d)
     for coll in colls : ax.add_collection(coll)
+    for pp in patches : ax.add_patch(pp)
     pltPlots(ax,plots,lw,ms,is_3d)
     pltTexts(ax,texts,fsT,is_3d)
     cs_i = pltImages(ax,im,cmap)

@@ -25,7 +25,7 @@ screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 ###########################################################################
 def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,view=None,
     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
-    gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='upper left',legElt=[],
+    gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='best',legElt=[],
     figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
     pOpt=None):
     '''
@@ -362,9 +362,12 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0):
     elif len(xylims)==6:
         xmin,xmax,ymin,ymax,zmin,zmax = xylims
     elif len(xylims)==3:
+        xylims0 = get_lims(ax,mg,None,is_3d)
         if xylims[0]=='x':
+            xmin, xmax = xylims0[2:]
             xmin,xmax = xylims[1:3]
         if xylims[0]=='y':
+            xmin, xmax = xylims0[:2]
             ymin,ymax = xylims[1:3]
     ax.set_xlim((xmin, xmax))
     ax.set_ylim((ymin, ymax))

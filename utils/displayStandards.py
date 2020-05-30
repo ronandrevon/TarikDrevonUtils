@@ -50,7 +50,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     if equal : ax.axis('equal')
     if setPos : ax.set_position(axPos);
     #lims,ticks and grid
-    xylims=changeAxesLim(ax,mg,xylims,is_3d);#print(is_3d,xylims)
+    xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims);#print(is_3d,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
     ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='in')
     ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='in')
@@ -66,7 +66,8 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt,figopt)
 
-def stddisp(plots=[],scat=[],texts=[],colls=[],patches=[],im=None,surfs=[],
+def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
+            contour=None,quiv=None,surfs=[],caxis=None,
             lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
             inset=None,iOpt='Gt',
@@ -75,6 +76,10 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],patches=[],im=None,surfs=[],
     fonts.keys=['lab','leg','tick','text','title']
     fonts,lw,ms,maker :
     axPos : 4-list or int - ax position (see get_axPos)
+    contour : list - x,y,z,[levels]
+    quiv : functor to gradient that will be plotted on the isocontours
+        must return shape (2,N,N)
+    imOpt : c(colorbar) h(horizontal) v(vertical)
     kwargs : standardDisplay
     '''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
@@ -87,21 +92,18 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],patches=[],im=None,surfs=[],
     for pp in patches : ax.add_patch(pp)
     pltPlots(ax,plots,lw,ms,is_3d)
     pltTexts(ax,texts,fsT,is_3d)
-    cs_i = pltImages(ax,im,cmap)
-    cs_s = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+
+    #note that at them moment only one cb per ax authorized
+    # priority order here : scat,im,contour
+    cs = None
+    if not contour==None:cs = plt_contours(ax,contour,quiv,cmap,lw)
+    if not im==None:cs = pltImages(ax,im,cmap,caxis)
+    if not scat==None:cs = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+    # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
+    add_colorbar(fig,ax,cs,imOpt,cmap)
+
     if is_3d : pltSurfs(ax,surfs)
-    if 'c' in imOpt :
-        cs = cs_i #if not cs_s else cs_s
-        if not cs : cs = plt.cm.ScalarMappable(plt.Normalize(vmin=0,vmax=1),cmap=cmap)
-        l,L = 0.03,0.85
-        if 'h' in imOpt:
-            orient,tickloc='horizontal','top'
-            ax_cb = fig.add_axes([0.1,0.9,L,l])
-        else :
-            orient,tickloc = 'vertical','right'
-            ax_cb = fig.add_axes([0.9,0.1,l,L])
-        if cs : cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
-        #if cs_s : cb_s=fig.colorbar(cs_s,ax=ax_cb,orientation=orient)
+
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
         in_box = inset['xylims']
@@ -112,9 +114,19 @@ def stddisp(plots=[],scat=[],texts=[],colls=[],patches=[],im=None,surfs=[],
             ax2.spines[axis].set_linewidth(3)
             ax2.spines[axis].set_color('g')
     if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
-
     return fig,ax
-#def get_cb
+
+def add_colorbar(fig,ax,cs,imOpt,cmap,l=0.03,L=0.85):
+    if 'c' in imOpt :
+        if not cs : cs = plt.cm.ScalarMappable(plt.Normalize(vmin=0,vmax=1),cmap=cmap)
+        if 'h' in imOpt:
+            orient,tickloc='horizontal','top'
+            ax_cb = fig.add_axes([0.1,0.9,L,l])
+        else :
+            orient,tickloc = 'vertical','right'
+            ax_cb = fig.add_axes([0.9,0.1,l,L])
+        cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
+
 #######################################################################
 ###### Old one
 def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
@@ -198,11 +210,13 @@ def pltTexts(ax,texts,fsT,is_3d=0):
         for t in texts:
             c_t = 'k' if len(t)<4 else t[3]
             ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t)
-def pltImages(ax,im=None,cmap='viridis'):
+def pltImages(ax,im=None,cmap='viridis',caxis=None):
     cs = None
     if isinstance(im,list):
         x,y,z = im
-        cs=ax.pcolor(x,y,z,cmap=cmap)
+        vmM = {}
+        if caxis : vmM = {'vmin':caxis[0],'vmax':caxis[1]}
+        cs=ax.pcolor(x,y,z,cmap=cmap,**vmM)
     elif isinstance(im,str):
         image = plt.imread(im)
         cs=ax.imshow(image,cmap=cmap)#,origin='upper')
@@ -215,7 +229,7 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
     - s : int or list/np.array of int
     - c : tuple,str or list/np.array of tuple/str
     '''
-    cs=None
+    cs = None
     if len(scat) :
         if proj_3D:
             x,y,z = scat[:3]
@@ -233,6 +247,7 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
         else :
             cs=ax.scatter(x,y,s,c,marker=marker,cmap=cmap)
     return cs
+
 def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
     '''surf : [x,y,z] or [x,y,z,c,a,lw,ec]
     '''
@@ -240,6 +255,15 @@ def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
         x,y,z = surf[:3]
         if len(surf)>3 : c,a,lw,ec = surf[3:]
         ax.plot_surface(x,y,z,color=c,alpha=a,linewidth=lw,edgecolor=c)
+
+def plt_contours(ax,contour,quiv,cmap,lw):
+    cs = ax.contour(*contour,cmap=cmap,linewidths=lw)
+    if not quiv == None:
+        v_cs = get_iso_contours_vertx(cs)
+        x_cs,y_cs = v_cs.T
+        dfx,dfy = quiv(x_cs,y_cs)
+        ax.quiver(x_cs,y_cs,dfx,dfy,linewidths=lw,units='xy')
+
 
 ########################################################################
 # handles and properties
@@ -328,10 +352,24 @@ def getCs(name,N):
     cs = [cmap(float(i+1)/N)[0:3] for i in range(N)]
     return cs
 
-def get_lines(CS):
-    '''get coordinates of iso-contours'''
+def get_iso_contours(CS):
+    '''get the list of iso-contours coordinates '''
     coords = [c.get_paths()[0].vertices for c in CS.collections]
     return coords
+
+def get_iso_contours_vertx(cs):
+    '''Get all vertices from isocontours
+    returns Nx2 ndarray
+    '''
+    v = np.zeros((0,2))
+    for coll in cs.collections:
+        ps = coll.get_paths()
+        viE = np.zeros((0,2))
+        for p in ps:
+            viE = np.vstack((viE,p.vertices))
+            #print(viE.shape)
+        v = np.vstack((v,viE))
+    return v
 
 def get_lims(ax,mg,xylims=None,is_3d=0):
     if not xylims:
@@ -355,7 +393,7 @@ def get_lims(ax,mg,xylims=None,is_3d=0):
             xylims = [xmin,xmax,ymin,ymax]
     return xylims
 
-def changeAxesLim(ax,mg,xylims=[],is_3d=0):
+def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
     xylims = get_lims(ax,mg,xylims,is_3d)
     if len(xylims)==4:
         xmin,xmax,ymin,ymax = xylims
@@ -369,11 +407,12 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0):
         if xylims[0]=='y':
             xmin, xmax = xylims0[:2]
             ymin,ymax = xylims[1:3]
-    ax.set_xlim((xmin, xmax))
-    ax.set_ylim((ymin, ymax))
+    if changeXYlims:
+        ax.set_xlim((xmin, xmax))
+        ax.set_ylim((ymin, ymax))
     xylims = [xmin,xmax,ymin,ymax]
     if is_3d :
-        ax.set_zlim((zmin, zmax))
+        changeXYlims:ax.set_zlim((zmin, zmax))
         xylims +=[zmin, zmax]
     return xylims
 

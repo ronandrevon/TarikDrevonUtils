@@ -19,7 +19,7 @@ screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True)
 screen_size=screen_size[int(len(screen_size)>2)]
 screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 
-#__all__ = []
+
 ###########################################################################
 #def : plotting standard
 ###########################################################################
@@ -29,6 +29,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
     pOpt=None):
     '''
+    legElt : dict - {'lab1':[(1,0,0),'s-']} overrides existing handles
     opt : p(plot), s(save), c(close) '
     pOpt : p(setPos)X(changeXYlims)l(legOpt)t(ticksOn)e(equal),G(gridOn),g(gridmOn)
     view : [elev,azim] for 3D projection axes
@@ -80,6 +81,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     quiv : functor to gradient that will be plotted on the isocontours
         must return shape (2,N,N)
     imOpt : c(colorbar) h(horizontal) v(vertical)
+    iOpt : displayStandards options for inset
     kwargs : standardDisplay
     '''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
@@ -115,6 +117,44 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
             ax2.spines[axis].set_color('g')
     if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
     return fig,ax
+
+def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
+    ''' display a pair data from different objects (used to compare methods)
+    - disp_d : dict - {key_sol : (sol_function_str,color,display_label))
+    - objs : list of tuples - [(obj,cml,leg)...] or [obj...]
+    - key_pair : (str,str or list of str) where str in disp_d.keys()
+    - help : for the list of available keys
+    '''
+
+    if help :print('available keys:\n',disp_d.keys());return
+
+
+    kx,kys = key_pair[0],key_pair[1]
+    fx_str,c,xlab = disp_d[kx]
+    if isinstance(kys,str):kys=[kys] #ylab = disp_d[al[kys]][0]
+
+    #legend for the quantities displayed
+    legElt = {disp_d[ky][2]:disp_d[ky][1] for ky in kys}
+
+    # keys legend
+    plts,ylab = [],''
+    for obj_t in objs:
+        if isinstance(obj_t,tuple):
+            obj,cml,leg = obj_t
+            legElt[leg] = cml
+            ml = ''.join(getCML(cml)[1:3])
+        else:
+            obj,ml=obj_t,'-'
+        for ky in kys:
+            fy_str,c = disp_d[ky][0:2]
+            fx = obj.__getattribute__(fx_str)
+            fy = obj.__getattribute__(fy_str)
+            plts += [[fx(),fy(),[c,ml],'']]
+
+    #display
+    labs = [xlab,ylab]
+    fig,ax = stddisp(plts,labs=labs,legElt=legElt,**kwargs)
+    return fig,ax,labs,legElt
 
 def add_colorbar(fig,ax,cs,imOpt,cmap,l=0.03,L=0.85):
     if 'c' in imOpt :
@@ -156,7 +196,7 @@ def addyAxis(fig,ax,plots,yLab='',c='k', lw=1,ms=5,axPos=[],showOpt=1,yTicks=[],
     standardDisplay(ax2,['',yLab],c=['k',c],axPos=axPosI,xyTicks=[[],yTicks],xyTickLabs=[[],yTickLabs],
                     **kwargs)
     ax.set_position(axPosI)
-    if showOpt : plt.show()
+    if showOpt : fig.show()
 
 def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
             xTicks=[],xTickLabs=[], **kwargs):
@@ -323,26 +363,25 @@ def getCML(C):
     return c,m,l
 
 def get_legElt(legElt):
+    legE=[]
     if isinstance(legElt,dict):
-        legE=[]
         for lab,cml in legElt.items():
             c,m,l=getCML(cml)
             legE+=[Line2D([0],[0],linewidth=2,linestyle=l,color=c,marker=m,label=lab)]
     return legE
+
 def addLegend(ax,fsLeg,legOpt=None,loc='upper left',legElt=[]):
-    if legOpt == None : legOpt = any(ax.get_legend_handles_labels()[0])
+    hs,labs = ax.get_legend_handles_labels()
+    legElt = get_legElt(legElt)
+    if legOpt == None : legOpt = any(labs) or any(legElt)
     if legOpt:
         out = None
         if loc[-4:]==' out' :
             loc = loc[:-4]
             if loc=='upper left' : out = (1, 1)
             elif loc=='center left' : out = (1, 0.5)
-        if any(legElt):
-            legElt = get_legElt(legElt)
-            leg = ax.legend(handles=legElt,fontsize=fsLeg,loc=loc)
-        else:
-            #print('loc:',loc,',out:',out)
-            leg = ax.legend(fontsize=fsLeg,loc=loc,bbox_to_anchor=out)
+
+        leg = ax.legend(handles=hs+legElt,fontsize=fsLeg,loc=loc,bbox_to_anchor=out)
         leg.set_draggable(True)         # matplotlib 3.1
         #leg.draggable(True)            # matplotlib 2.2
         #if leg : leg.DraggableLegend() # matplotlib?
@@ -501,120 +540,3 @@ def getSymCurve(x,y,symOpt=1):
     x = np.concatenate((np.flipud(-x),x))
     y = np.concatenate((np.flipud(symOpt*y),y))
     return x,y
-
-
-
-
-###########################################################################
-#_tests
-###########################################################################
-def _testStdDispPlt():
-    nPts = 10
-    x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
-    x2 = np.linspace(-2,2,nPts);y2 = pow(x2,2)
-    x3 = np.linspace(-2,2,nPts);y3 = pow(x3,3)
-    plots = [[x1,y1,'r+-.','$x$'  ,1],
-             [x2,y2,'gs--','$x^2$',2],
-             [x3,y3,'bo--','$x^3$',3]]
-    xlabs = ['$x$','$y$']
-    stdDispPlt(plots,xlabs, axPos=[0.12, 0.12, 0.8, 0.8], c=['k','b'],
-               fonts=[30,25,12,25], texts=[[0.05,0.2,'O','m']])
-def _testStdDispPlt_b():
-    x = np.linspace(0,1,10)
-    plots       = [x,x,'b','x']
-    plotsList   = [plots]
-    stdDispPlt(plots, showOpt=0)
-    stdDispPlt(plotsList)
-def _testStdDispPlt_c():
-    x = np.linspace(0,1,10)
-    plots       = [x,x,[(1.0,0.5,0.2),'s-.'],'x']
-    stdDispPlt(plots, showOpt=1)
-def _testStdDispPlt_subplots():
-    fig,ax = plt.subplots(nrows=1,ncols=2)
-    x = np.linspace(0,1,10)
-    stdDispPlt([x,2*x,'b','$y1$'],['$x$','$y$'], ax=ax[0],axPos=11, showOpt=0)
-    stdDispPlt([x,4*x,'r','$y2$'],['$t$','$y$'], ax=ax[1],axPos=12, showOpt=1,fullsize=True)
-
-def _testAddyAxis():
-    nPts = 10
-    x1   = np.linspace(-2,2,nPts);y1 = pow(x1,1)
-    plotsAx1 = [x1,+y1,'r' ,'']
-    plotsAx2 = [x1,-y1,'b','']
-    fig,ax = stdDispPlt(plotsAx1,['$x$','$y$'],c=['k','r'],legOpt=0,showOpt=0)
-    addyAxis(fig,ax,plotsAx2,'$-y$',c='b', legOpt=0, showOpt=1)
-def _testAddxAxis():
-    x1 = np.linspace(-2,2,100);y1 = pow(x1,2)
-    x2 = np.linspace(-1,1,100);y2 = pow(x2,2)
-    plotsAx1 = [x1,y1,'r' ,'$x^2$']
-    plotsAx2 = [x2,y2,'b' ,'$x^2$']
-    fig,ax = stdDispPlt(plotsAx1,['$x$','$y$'],c=['k','k'],legOpt=0,showOpt=0)
-    addxAxis(ax,plotsAx2,'$x_2$',c='b', showOpt=1)
-
-def _testChangeAxLim():
-    fig,ax = plt.subplots();plt.plot(range(5),range(5))
-    print(changeAxesLim(ax,0.05,xylims=[]))
-    print(changeAxesLim(ax,0.05,xylims=[0,1.,0,2.]))
-    print(changeAxesLim(ax,0.05,xylims=['x',0,1.]))
-    print(changeAxesLim(ax,0.05,xylims=['y',0,2.]))
-def _test_get_axPos():
-    cmd ='get_axPos(1)' ; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos(11)'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos(21)'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos(0)' ; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos([])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos([0.1, 0])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos([0.1, 0.1, 0.8, 0.8])'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-    cmd ='get_axPos((0.1, 0.1, 0.8, 0.8))'; print('%-20s: axPos=%s' %(cmd,str(eval(cmd))))
-def _testGetSymCurve():
-    x = np.linspace(0,np.pi,100)
-    x1,x2 = x,x
-    y1,y2 = np.cos(x1),np.sin(x2)
-    x1,y1 = getSymCurve(x1,y1,1)
-    x2,y2 = getSymCurve(x2,y2,-1)
-    stdDispPlt([[x1,y1,'b','$cos$'],[x2,y2,'r','$sin$']])
-def _testGetCML(s):
-    c,m,l = getCML(s)
-    print('color, marker, linestyle')
-    print(c,m,l)
-def _test_scat() :
-    x,y = np.random.rand(2,10)
-    c   = ['b']*10
-    s   = [5]*10
-    ct  = [(0.2,0.3,0.1)]*10
-    stddisp(scat=[x,y,s,c]          ,opt='q',legOpt=0)
-    stddisp(scat=[x,y,s[0],c[0]]    ,opt='q',legOpt=0)
-    stddisp(scat=[x,y,c]            ,opt='q',legOpt=0)
-    stddisp(scat=[x,y,np.array(c)]  ,opt='q',legOpt=0)
-    stddisp(scat=[x,y,ct]           ,opt='q',legOpt=0)
-    stddisp(scat=[x,y,ct[0]]        ,opt='p',legOpt=0)
-def _test_stddisp():
-    nPts = 10
-    x1 = np.linspace(-2,2,nPts);y1 = pow(x1,1)
-    x2 = np.linspace(-2,2,nPts);y2 = pow(x2,2)
-    x3 = np.linspace(-2,2,nPts);y3 = pow(x3,3)
-    plots = [[x1,y1,'r+-.','$x$'  ,1],
-             [x2,y2,'gs--','$x^2$',2],
-             [x3,y3,'bo--','$x^3$',3]]
-    pol=matplotlib.patches.Polygon([[0,0],[0,1],[1,1]],label='$pol$')
-    coll = matplotlib.collections.PatchCollection([pol],'y',alpha=0.3,linewidth=2,edgecolor='g')
-    stddisp(plots=plots,colls=[coll],scat=[x1,y1,10,'b'],
-            texts=[[0.05,0.2,'This is text','m']],
-            labs=['$x$','$y$'], c=['k','b'],pad=2,
-            fonts={'text':30,'title':15,'lab':15,'tick':10,'leg':'20'},
-            legElt=[pol],opt='p')
-
-if __name__=='__main__':
-    #_testGetCML('b:.<')
-    #_testStdDispPlt()
-    #_testStdDispPlt_b()
-    #_testStdDispPlt_c()
-    #_testStdDispPlt_subplots()
-    #_testAddxAxis()
-    #_testAddyAxis()
-    #_testChangeAxLim()
-    #_testGetSymCurve()
-    #_test_get_axPos()
-    #_test_scat()
-    #_test_stddisp()
-    #print(getCML(np.random.rand(3))
-    print(green+__file__.split('/')[-1]+' success'+black)

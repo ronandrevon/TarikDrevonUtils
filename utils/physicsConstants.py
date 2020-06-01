@@ -41,6 +41,7 @@ eps0    = 8.854187817*pow(10,-12)   #S.I.
 mu0     = 4*math.pi*pow(10.,-7)          #H.m
 hbar    = 1.0545718*pow(10,-34)     #J.s
 h       = 2*math.pi*hbar;                #J.s
+hplanck = 2*math.pi*hbar;                #J.s
 m0      = 9.1093856*pow(10,-31)     #kg
 emass   = 510.99906                 #keV
 c       = 299792458                 #m/s
@@ -55,3 +56,12 @@ alpha_cst = 1/137
 a0 = hbar/(m0*c*alpha_cst)/A
 mc2 = 510.99906 # keV
 hbsm = pow(hbar/nm,2)/(2*m0)/eV # eV (k=1nm^-1)
+
+
+
+
+#####################################################################
+#unit conversions
+eV2Hz = lambda E:E*eV/hplanck
+meV2THz = lambda E:E*meV/hplanck/1e12
+THz2meV = lambda nu: hplanck*nu*THz/meV

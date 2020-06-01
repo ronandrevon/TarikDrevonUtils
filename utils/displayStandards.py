@@ -441,10 +441,10 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
     elif len(xylims)==3:
         xylims0 = get_lims(ax,mg,None,is_3d)
         if xylims[0]=='x':
-            xmin, xmax = xylims0[2:]
             xmin,xmax = xylims[1:3]
+            ymin,ymax = xylims0[2:]
         if xylims[0]=='y':
-            xmin, xmax = xylims0[:2]
+            xmin,xmax = xylims0[:2]
             ymin,ymax = xylims[1:3]
     if changeXYlims:
         ax.set_xlim((xmin, xmax))

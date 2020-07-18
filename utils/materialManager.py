@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 from .physicsConstants import kB,eV
-#from linearInterp import linInterp
-#from materials import
+from . import glob_colors as colors
 
 materials = pd.read_pickle(os.path.dirname(__file__)+'/materials/materials.pkl')
 _key_cols = materials.columns.values.tolist()
@@ -11,6 +10,7 @@ _key_funcs = ['Ncv','Ni','Neff']
 _keys = _key_cols+_key_funcs
 
 
+## functions to compute new properties from existing entries
 get_NcNv = lambda mat,T: np.sqrt(mat['Nc']*mat['Nv'])
 get_Ni   = lambda mat,T: get_NcNv(mat,T)*np.exp(-mat['Eg']/(2*(kB*T/eV)))
 get_Neff = lambda mat,T: 2.5e19*mat['me']**1.5*(T/300)**1.5
@@ -29,6 +29,12 @@ def get_params(mat_name,T,keys):
     values = mat[keys].values
     return values
 
+def update_materials():
+    import subprocess
+    mat_path = os.path.dirname(__file__)+'/materials/'
+    out=subprocess.check_output("python3 %smake_df_mat.py" %mat_path,shell=True).decode()
+    print(colors.green+out+colors.black)
+    materials = pd.read_pickle(mat_path+'materials.pkl')
 # class Material:
 #     def __init__(self,name):
 #         vals = materials.loc[name].values
@@ -37,26 +43,6 @@ def get_params(mat_name,T,keys):
 # get_Ni   = lambda mat: np.sqrt(mat.Nc*mat.Nv)*np.exp(-mat.Eg/(2*mat.kT))
 # get_Neff = lambda mat: 2.5*e19*pow(mat.me,1.5)*pow(mat.T/300,1.5)
 
-#
-# def getMat(name,T=300):
-#     kT = kB*T/eV
-#     mat = materials.loc[name]
-#     mat = computeMaterialProperties(mat,kT)
-#     mat.name = name
-#     return mat
-#
-# def computeMaterialProperties(mat,kT):
-#     Nc = mat.Nc
-#     Nv = mat.Nv
-#     Eg = mat.Eg
-#
-#     Ncv = np.sqrt(Nc*Nv)
-#     Ni  = np.sqrt(Nc*Nv)*np.exp(-Eg/(2*kT))
-#
-#     mat.Ncv = Ncv
-#     mat.Ni = Ni
-#     return mat
-#
 def computeIntrinsicDensity(Nc,Nv,Eg,T):
     Ni2 = Nc*Nv*np.exp(-Eg/(kB*T/eV))
     return np.sqrt(Ni2)
@@ -85,26 +71,9 @@ def getTernaryAlloy(mat1,mat2,x,keys=None,T=300):
     return values
 
 
-############################################################################
-#### def : Misc
-# def unwrapMatParams(mat,T):
-#     mat = getMat(mat,T)
-#     Eg = mat.Eg
-#     a0 = mat.a0
-#     g1 = mat.g1
-#     g2 = mat.g2
-#     g3 = mat.g3
-#     C11 = mat.C11
-#     C12 = mat.C12
-#     C44 = mat.C44
-#     a = mat.a
-#     b = mat.b
-#     d = mat.d
-#     return Eg,a0, g1,g2,g3, C11,C12,C44, a,b,d
-
-
-
-
+########################################################################
+# tests
+########################################################################
 def _testTernaryAlloys(mat1='GaAs',mat2='AlAs',x=0.5):
     keys = ['Eg','a0', 'g1','g2','g3', 'C11','C12','C44', 'a','b','d']
     vals = getTernaryAlloy(mat1,mat2,x,keys)

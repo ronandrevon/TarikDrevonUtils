@@ -1,17 +1,19 @@
 import numpy as np
 import pandas as pd
 import pickle,os
+
+
 from GaAs import mat as GaAs
+from InAs import mat as InAs
 from AlAs import mat as AlAs
 from Si import mat as Si
 from Ge import mat as Ge
 
 ##add materials here
-mats = {'GaAs':GaAs,'AlAs':AlAs,'Si':Si,'Ge':Ge}
-
+mats = {'GaAs':GaAs,'AlAs':AlAs,'InAs':InAs, 'Si':Si,'Ge':Ge}
 
 sc_cond   = ['Eg','Xi','eps','Nc','Nv']
-masses    = ['me','mh']
+masses    = ['me','mh','mhh','mlh','mso']
 lattice   = ['a0']
 luttinger = ['g1','g2','g3']
 stiffness = ['C11','C12','C44']

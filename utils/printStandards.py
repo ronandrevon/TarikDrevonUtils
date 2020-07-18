@@ -1,10 +1,10 @@
 from .glob_colors import*
 import numpy as np
 
+
 ###########################################################################
 #### defs : printing stuffs
 def valsToStr(v,n=2,f='E'):
-    
     if f == 'E':
         if n==1:
             vals = ['%.1E' %(val) for val in v];
@@ -34,20 +34,20 @@ def printVals(v,f='E',prec=3):
         ['%.0E' %x,'%.1E' %x,'%.2E' %x,'%.3E' %x,'%.4E' %x ,'%.5E' %x,
          '%.6E' %x,'%.7E' %x,'%.8E' %x,'%.9E' %x,'%.10E' %x]][d][prec]
     for val in v:
-        if isinstance(val,int):                        
-            values += '%-12d' %(val) 
+        if isinstance(val,int):
+            values += '%-12d' %(val)
         elif isinstance(val,str):
             values += '%-12s' %(val)
-        else:            
+        else:
             values += '%-12s' %(xp(val))
     print(values)
-    
+
 def printKeys(k):
     keys, line = ['','']
     strLine = '-'*12
     for key in k:
-        keys   = keys + '%-12s' %(key) 
-        line   = line + strLine      
+        keys   = keys + '%-12s' %(key)
+        line   = line + strLine
     print(keys)
     print(line)
 
@@ -62,7 +62,7 @@ def printList(k,v):
         keyStr = '%-10s' %(key) if val >0 else '%-11s' %(key)
         keys   = keys + keyStr
         line   = line + strLine
-        values = values + '%.2E' %(val) + '  '        
+        values = values + '%.2E' %(val) + '  '
     print(keys)
     print(line)
     print(values)
@@ -72,7 +72,7 @@ def testPrint():
     printVals([0.5,-0.8, 1.0*pow(10.,19),5.0*pow(10.,16), -250.023])
     printVals([-0.5,-0.8, 1.0*pow(10.,19),+5.0*pow(10.,16), -250.023])
     printVals([0.5,0.8, -1.0*pow(10.,18),5.0*pow(10.,16), 250.023])
-def testValsToStr(): 
+def testValsToStr():
     v = [1.25254,3.2545,5.245,5.02]
     print(valsToStr(v,1,'E'))
     print(valsToStr(v,2,'f'))

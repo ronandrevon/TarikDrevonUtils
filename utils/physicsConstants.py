@@ -4,18 +4,29 @@ import math
 #m,s,kg
 km      = 1e3
 #m       = 1.0
-cm      = pow(10.,-2)
-cm3     = cm**3
-cm2     = cm**2
+cm      = 1e-2
+mm      = 1e-3
 mum     = 1e-6
 nm      = 1e-9
 A       = 1e-10
+pm      = 1e-12
+fm      = 1e-15
+cm2     = cm**2
+cm3     = cm**3
+mm2     = 1e-6
+mm3     = 1e-9
+mum2    = mum**2
+mum3    = mum**3
+mum2cm2 = 1e-8
 #s       = 1.0
 kHz     = 1e3
 MHz     = 1e6
 GHz     = 1e9
 THz     = 1e12
 PHz     = 1e15
+ns      = 1e-9
+ps      = 1e-12
+fs      = 1e-15
 #kg      = 1.0
 g       = 1e-3
 ##energy
@@ -29,6 +40,7 @@ muW      = 1e-6
 mW      = 1e-3
 kW      = 1e3
 MJ      = 1e6
+mA      = 1e-3
 ## weird units
 grain   = 6.47989e-5
 lbs     = 0.453592
@@ -63,5 +75,21 @@ hbsm = pow(hbar/nm,2)/(2*m0)/eV # eV (k=1nm^-1)
 #####################################################################
 #unit conversions
 eV2Hz = lambda E:E*eV/hplanck
+eV2mum = lambda E:c/eV2Hz(E)/mum
 meV2THz = lambda E:E*meV/hplanck/1e12
 THz2meV = lambda nu: hplanck*nu*THz/meV
+lam2eV = lambda lam: hplanck*c0/(lam*nm)/eV
+lam2omega = lambda lam: 2*math.pi*c0/(lam*nm)
+T2meV = lambda T:kB*T/meV
+kT = lambda T:kB*T/meV
+omega2meV = lambda omega: hbar*omega/meV
+
+keV2v = lambda KE:math.sqrt(1 - 1/(1+np.array(KE)/mc2)**2)
+keV2lam = lambda KE:h*c0/(math.sqrt(KE*(2*emass+KE))*keV)/A
+keV2sigma = lambda KE:2*math.pi*m0*(1+KE/mc2)*keV2lam(KE)*A*eV/h**2*kV*A #rad/(m*V)
+
+#####################################################################
+#functions
+def E2lam(E) :
+    '''E(eV),lam(mum)'''
+    return eV2mum(E)

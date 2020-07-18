@@ -8,6 +8,7 @@ from .glob_colors import*
 from subprocess import check_output
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 # Get screen info, remove toolbar
 # matplotlib.rcParams['toolbar'] = 'None'
@@ -48,10 +49,9 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     if is_3d : ax.set_zlabel(labs[2],fontsize=fs   ,color=c[1])
     ax.axis(['off','on'][ticksOn])
     ax.set_axisbelow(True)
-    if equal : ax.axis('equal')
     if setPos : ax.set_position(axPos);
     #lims,ticks and grid
-    xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims);#print(is_3d,xylims)
+    xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims)#;print(changeXYlims,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
     ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='in')
     ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='in')
@@ -63,13 +63,14 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
         ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='--')
     if view : ax.view_init(elev=view[0], azim=view[1])
     #title,legend,save
+    if equal :ax.axis(['equal','scaled'][is_3d]);
     ax.set_title(title, {'fontsize': fsT}); #print(title)
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt,figopt)
 
 def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
-            contour=None,quiv=None,surfs=[],caxis=None,
-            lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
+            tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
+            cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
             inset=None,iOpt='Gt',
             std=1,**kwargs):
@@ -81,6 +82,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     quiv : functor to gradient that will be plotted on the isocontours
         must return shape (2,N,N)
     imOpt : c(colorbar) h(horizontal) v(vertical)
+    cs    : C(contours),I(image),S(scatter),N(None) artist to use for colorbar
     iOpt : displayStandards options for inset
     kwargs : standardDisplay
     '''
@@ -89,7 +91,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     if not ax : fig,ax = create_fig(figsize,pad,rc)
     if ax and not axPos : axPos=ax.get_position().bounds
     #add lines,patches,texts,scatters
-    is_3d = not isinstance(ax,matplotlib.axes._subplots.Subplot) #;print(is_3d)
+    is_3d = "3D" in str(ax.__class__) # not isinstance(ax,matplotlib.axes._subplots.Subplot) and not isinstance(ax,matplotlib.axes._axes.Axes)#;print(is_3d)
     for coll in colls : ax.add_collection(coll)
     for pp in patches : ax.add_patch(pp)
     pltPlots(ax,plots,lw,ms,is_3d)
@@ -97,12 +99,13 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
 
     #note that at them moment only one cb per ax authorized
     # priority order here : scat,im,contour
-    cs = None
-    if not contour==None:cs = plt_contours(ax,contour,quiv,cmap,lw)
-    if not im==None:cs = pltImages(ax,im,cmap,caxis)
-    if not scat==None:cs = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+    css = dict(zip(['I','S','C','N'],[None]*4))
+    if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
+    if not im==None:css['I'] = pltImages(ax,im,cmap,caxis,imOpt)
+    if not scat==None:css['S'] = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
-    add_colorbar(fig,ax,cs,imOpt,cmap)
+    if isinstance(cs,str) : cs=css[cs]
+    add_colorbar(fig,ax,cs,imOpt,cmap,caxis=caxis)
 
     if is_3d : pltSurfs(ax,surfs)
 
@@ -117,6 +120,23 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
             ax2.spines[axis].set_color('g')
     if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
     return fig,ax
+
+
+def image_bg(im,**kwargs):
+    ''' display an image in background to data
+    fig = dsp.image_bg('image.png',xylims=[0,1,0,1])
+    NOTE :
+    use fix_pos(fig) after the figure has been displayed
+    '''
+    fig,ax = stddisp(im=im,pOpt='',opt='')
+    ax1 = fig.add_axes([0,0,1,1],frameon=False)
+    stddisp(ax=ax1,pOpt='GtX',**kwargs)
+    return fig
+
+def fix_pos(fig):
+    fig.axes[1].set_position(fig.axes[0].get_position())
+    fig.canvas.draw()
+    return fig
 
 def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
     ''' display a pair data from different objects (used to compare methods)
@@ -156,9 +176,11 @@ def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
     fig,ax = stddisp(plts,labs=labs,legElt=legElt,**kwargs)
     return fig,ax,labs,legElt
 
-def add_colorbar(fig,ax,cs,imOpt,cmap,l=0.03,L=0.85):
+def add_colorbar(fig,ax,cs,imOpt,cmap,l=0.03,L=0.85,caxis=None):
     if 'c' in imOpt :
-        if not cs : cs = plt.cm.ScalarMappable(plt.Normalize(vmin=0,vmax=1),cmap=cmap)
+        if not cs :
+            if caxis==None:caxis=[0,1]
+            cs = plt.cm.ScalarMappable(plt.Normalize(vmin=caxis[0],vmax=caxis[1]),cmap=cmap)
         if 'h' in imOpt:
             orient,tickloc='horizontal','top'
             ax_cb = fig.add_axes([0.1,0.9,L,l])
@@ -250,16 +272,30 @@ def pltTexts(ax,texts,fsT,is_3d=0):
         for t in texts:
             c_t = 'k' if len(t)<4 else t[3]
             ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t)
-def pltImages(ax,im=None,cmap='viridis',caxis=None):
+def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt=''):
     cs = None
+    if isinstance(im,str):
+        if '.npy' in im:
+            im = np.load(im)
+            if len(im.shape)==3:im=list(im)
+        else:
+            if 'g' in imOpt:
+                image = Image.open(fname).convert("L")
+                image = np.asarray(image)/255
+                cs = ax.pcolor(im,cmap='gray',)
+                im = None
+            else:
+                image = plt.imread(im)
+                cs=ax.imshow(image,cmap=cmap)#,**im_args)#,origin='upper')
+                im = None
     if isinstance(im,list):
-        x,y,z = im
-        vmM = {}
-        if caxis : vmM = {'vmin':caxis[0],'vmax':caxis[1]}
-        cs=ax.pcolor(x,y,z,cmap=cmap,**vmM)
-    elif isinstance(im,str):
-        image = plt.imread(im)
-        cs=ax.imshow(image,cmap=cmap)#,origin='upper')
+        x,y,z = im[:3]
+        N = int(np.sqrt(x.shape[0]))
+        dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
+        args = {}
+        if caxis : args = {'vmin':caxis[0],'vmax':caxis[1]}
+        if len(im)>3:args['alpha']=im[3]
+        cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
     elif isinstance(im,np.ndarray):
         cs=ax.pcolor(im,cmap=cmap)
     return cs
@@ -303,7 +339,7 @@ def plt_contours(ax,contour,quiv,cmap,lw):
         x_cs,y_cs = v_cs.T
         dfx,dfy = quiv(x_cs,y_cs)
         ax.quiver(x_cs,y_cs,dfx,dfy,linewidths=lw,units='xy')
-
+    return cs
 
 ########################################################################
 # handles and properties
@@ -312,7 +348,7 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
     '''figsize :
         tuple : (width,height) normalized units
         str   : f(full),12(half),22(quarter)
-        rc    : layout arrangement : '3d','11','22',...
+        rc    : str or list - layout arrangement : '3d','11','22',...
     '''
     if isinstance(figsize,str) :
         figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
@@ -333,7 +369,8 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
 
 def get_font(d_font=dict(),dOpt=False) :
     keys = ['lab','leg','tick','text','title']
-    vals = [30,25,15,20,30]
+    # vals = [30,25,15,20,30]
+    vals = [25,20,15,20,20]
     font_dict = dict(zip(keys,vals))
     for k in d_font.keys() : font_dict[k] = d_font[k]
     if dOpt : keys = ['lab','leg','tick','title']
@@ -386,9 +423,12 @@ def addLegend(ax,fsLeg,legOpt=None,loc='upper left',legElt=[]):
         #leg.draggable(True)            # matplotlib 2.2
         #if leg : leg.DraggableLegend() # matplotlib?
 
-def getCs(name,N):
-    cmap = matplotlib.cm.get_cmap(name)
-    cs = [cmap(float(i+1)/N)[0:3] for i in range(N)]
+def getCs(name,N,cmopt=0):
+    if cmopt:
+        cs = matplotlib.cm.get_cmap(name)
+    else:
+        cmap = matplotlib.cm.get_cmap(name)
+        cs = [cmap(float(i+1)/N)[0:3] for i in range(N)]
     return cs
 
 def get_iso_contours(CS):
@@ -447,6 +487,7 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
             xmin,xmax = xylims0[:2]
             ymin,ymax = xylims[1:3]
     if changeXYlims:
+        # print([xmin,xmax,ymin,ymax])
         ax.set_xlim((xmin, xmax))
         ax.set_ylim((ymin, ymax))
     xylims = [xmin,xmax,ymin,ymax]
@@ -500,6 +541,10 @@ def get_axPos(axPosI):
 def basename(file):
     if file[-1]=='/' : file = file[:-1]
     return os.path.basename(file)
+def dirname(file):
+    #if file[-1]=='/' : file = file[:-1]
+    return os.path.dirname(file)+'/'
+
 def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
     return figpath

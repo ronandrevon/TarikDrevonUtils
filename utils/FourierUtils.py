@@ -42,7 +42,7 @@ def Fourier(yfunc,Tf=100,dt=0.01,fopt='s',dOpt='ftc',pOpt='RIYP',
     return t,y,f,Y
 
 def get_FFT(t,y,dt=0,pOpt=False):
-    ''' pOpt : periodic option hence divide by sample size'''
+    ''' pOpt : periodic option => divide by sample size'''
     N,dt = t.size,t[1]-t[0] #shape[0]
     Y = np.fft.fftshift(np.fft.fft(y)*[dt,1./N][pOpt])
     f = np.fft.fftshift(np.fft.fftfreq(N,dt))
@@ -54,7 +54,7 @@ def get_FFT(t,y,dt=0,pOpt=False):
 def get_iFFT(f,F,df=0,pOpt=False):
     ''' pOpt : periodic option hence divide by sample size'''
     N,df = f.size,f[1]-f[0] #shape[0]
-    y = np.fft.fftshift(np.fft.ifft(F)*[df,1./N][pOpt])
+    y = np.fft.fftshift(np.fft.ifft(F)*[df*N,1][pOpt])
     t = np.fft.fftshift(np.fft.fftfreq(N,df))
     return t,y
 

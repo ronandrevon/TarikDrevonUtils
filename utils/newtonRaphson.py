@@ -6,10 +6,13 @@ from .glob_colors import*
 def y_str(v):
     if isinstance(v,complex) or isinstance(v,np.complex128):
         return '%.3f+j%.3f' %(v.real,v.imag)
+    elif isinstance(v,np.ndarray):
+         return '['+' '.join(map(lambda s:'%.2E' %s,v))+']'
     else:
         return '%.3f' %v
 def newton_recursive(f,df,x,y0,cond=None,Ncut=5,npts=3,tol=1e-5,nMax=100,v=1):
     ''' find roots of f(y,x) with Newton for fixed values of x (works both for 1D and N-D functions F):\n
+    - x : ndarray - set of values at which netwton is computed
     - y0 : initial guess
     - cond : cond(x0,x1,y0,y1) functor - condition for accepting the solution (default accepted if f0<tol)
     - Ncut,npts : max cutback level and number of intermediate pts per cutback
@@ -20,6 +23,7 @@ def newton_recursive(f,df,x,y0,cond=None,Ncut=5,npts=3,tol=1e-5,nMax=100,v=1):
         is_nd = 1
         y = np.zeros(x.shape,dtype=complex)
     elif isinstance(y0,list) or isinstance(y0,np.ndarray) :
+        y0 = np.array(y0)
         is_nd = 2
         y = np.zeros((x.shape[0],y0.size),dtype=float)
     else:
@@ -39,7 +43,7 @@ def newton_recursive(f,df,x,y0,cond=None,Ncut=5,npts=3,tol=1e-5,nMax=100,v=1):
             print(yellow+'%3d : %s %s' %(0,y_str(x[0]),y_str(y0)) +black)
     else :
         print(red+'bad initial guess :')
-        print('x0=%s,y0=%s,f0=%E' %(y_str(x[0]),ystr(y0),f0))
+        print('x0=%s,y0=%s,f0=%E' %(y_str(x[0]),y_str(y0),f0))
         print('exiting'+black);return x
     #iterate
     i,valid = 1,f0<tol
@@ -49,7 +53,7 @@ def newton_recursive(f,df,x,y0,cond=None,Ncut=5,npts=3,tol=1e-5,nMax=100,v=1):
         y[i],i = y0,i+1
     if not valid and v :
         print(red+'convergence issue : last point (invalid)'+black)
-        print('x0=%s,y0=%s,f0=%E' %(y_str(x[i]),ystr(y[i]),f0))
+        print('x0=%s,y0=%s,f0=%E' %(y_str(x[i]),y_str(y[i]),f0))
     return y
 
 def _newton_rec(n,f,df,x,y0,cond,newton_p,Ncut,npts,tol,nMax,v):
@@ -74,16 +78,37 @@ def _newton_rec(n,f,df,x,y0,cond,newton_p,Ncut,npts,tol,nMax,v):
 ########################################################################
 # Newton algos
 def newton(f,df,x0,args=(),tol=1e-5,nMax=100,v=0):
+    if isinstance(df,int):
+        return newtonfdf(f,x0,args,tol,nMax,v)
+    else:
+        return newtonf(f,df,x0,args,tol,nMax,v)
+
+
+def newtonfdf(fdf,x0,args=(),tol=1e-5,nMax=100,v=0):
+    x,i = x0,0
+    fx,dfx = fdf(x,*args)
+    fxN = np.linalg.norm(fx)
+    while fxN>=tol and i<nMax:
+        fx,dfx = fdf(x,*args)
+        # print(x,fxN,fx,dfx)
+        dx = np.linalg.solve(dfx,fx)
+        x -= dx
+        fxN = np.linalg.norm(fx)
+        i = i+1
+    return [x,fxN,i][:v+1]
+
+def newtonf(f,df,x0,args=(),tol=1e-5,nMax=100,v=0):
     x,i = x0,0
     fx,dfx = f(x,*args)
     fxN = np.linalg.norm(fx)
     while fxN>=tol and i<nMax:
         fx,dfx = f(x,*args),df(x,*args)
+        # print(x,fxN,fx,dfx)
         dx = np.linalg.solve(dfx,fx)
         x -= dx
         fxN = np.linalg.norm(fx)
         i = i+1
-    return x
+    return [x,fxN,i][:v+1]
 
 def newton_cplx(f,df,z0,args=(),tol=1e-7,nMax=100,v=0):
     ''' Newton for a complex valued function f(z)
@@ -114,7 +139,7 @@ def newtonRaphson1D(f,df,x0,args=(),tol=0.01,nMax=10,v=0):
     #argsx   = (x,)+args
     fx      = f(x,*args)
     while abs(fx)>=tol and i<nMax :
-        #print(x,fx,df(*argsx))
+        print(x,fx,df(x,*args))
         x = x - fx/df(x,*args)
         #argsx = (x,)+args
         fx = f(x,*args)

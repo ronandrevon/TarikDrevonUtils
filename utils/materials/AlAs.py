@@ -12,7 +12,6 @@ mat = {
 #cm^-3
 'Nc' : 4.7e17,
 'Nv' : 7.0e18,
-'me' : 0.1,
 
 # lattice constant (A)
 'a0' : 5.6622,

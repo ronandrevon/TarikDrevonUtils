@@ -1,15 +1,15 @@
 '''Display utilities'''
+import numpy as np
 import matplotlib,os
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection as PatchColl
 from matplotlib.patches import Rectangle
-from .glob_colors import*
-from subprocess import check_output
 import matplotlib.pyplot as plt
-import numpy as np
+from subprocess import check_output
 from PIL import Image
-
+from .glob_colors import*
+from . import glob_colors as colors
 # Get screen info, remove toolbar
 # matplotlib.rcParams['toolbar'] = 'None'
 matplotlib.rcParams['backend'] = 'GTK3Agg'
@@ -538,12 +538,16 @@ def get_axPos(axPosI):
         axPosition = axPos[axPosI]
     return axPosition
 
+############
 def basename(file):
     if file[-1]=='/' : file = file[:-1]
     return os.path.basename(file)
 def dirname(file):
     #if file[-1]=='/' : file = file[:-1]
     return os.path.dirname(file)+'/'
+
+def warn(msg):
+    print(colors.red+msg+colors.black)
 
 def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
@@ -560,13 +564,13 @@ def saveFig(fullpath,ax,png=None,fmt='',opt='1'):
     if 't' in opt : opt,topt=opt[1:],1
     r_dpi= 1 if not opt else int(opt); #print(r_dpi)
     plt.savefig(filename, format=fmt, dpi=r_dpi*96,transparent=topt)
-    print(green+'Saving figure :\n'+yellow+filename+black)
+    print(colors.green+'Saving figure :\n'+colors.yellow+filename+colors.black)
 
 def crop_fig(name,crop):
         cropcmd = "%dx%d+%d+%d" %tuple(crop)
         cmd = "convert %s -crop %s %s" %(name,cropcmd,name)
         check_output(cmd,shell=True)
-        print(yellow+name+blue+' cropped to '+black,cropcmd)
+        print(colors.yellow+name+colors.blue+' cropped to '+colors.black,cropcmd)
 
 def disp_quick(name,ax,opt,figopt):
     if 's' in opt : saveFig(name,ax,fmt='png',opt=figopt)
@@ -575,9 +579,9 @@ def disp_quick(name,ax,opt,figopt):
 
 def im2gif(figpattern,fmt='svg'):
     cmd='im2gif '+figpattern +' ' + fmt
-    print(magenta+cmd+'  ...'+black)
+    print(colors.magenta+cmd+'  ...'+colors.black)
     out=check_output(['/bin/bash','-i','-c',cmd]).decode()
-    print(green+out+black)
+    print(colors.green+out+colors.black)
 
 ###########################################################################
 #misc

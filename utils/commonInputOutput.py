@@ -18,7 +18,7 @@ def print_params(params_d,fmt0='%.3f'):
     for k,v in params_d.items():
         p,unit = getParamUnit(k)
         msg+=fmt %(p,v,unit)
-    print(msg[:-2])
+    print(msg[:-1])
 
 #### def : Main user interface
 # load and save arrays

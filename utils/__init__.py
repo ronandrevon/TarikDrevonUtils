@@ -16,5 +16,5 @@ from . import newtonRaphson as nwt
 from . import bissection as bis
 from . import commonInputOutput as iostd
 from . import physicsConstants as cst
-# from .physicsConstants import *
+from . import glob_colors  as colors
 from .glob_colors import *

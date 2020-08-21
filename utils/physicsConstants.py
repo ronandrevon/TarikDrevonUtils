@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 ############################# units #######################################
 #m,s,kg
@@ -41,6 +42,7 @@ mW      = 1e-3
 kW      = 1e3
 MJ      = 1e6
 mA      = 1e-3
+Na      = 6.02214076e23
 ## weird units
 grain   = 6.47989e-5
 lbs     = 0.453592
@@ -74,19 +76,21 @@ hbsm = pow(hbar/nm,2)/(2*m0)/eV # eV (k=1nm^-1)
 
 #####################################################################
 #unit conversions
-eV2Hz = lambda E:E*eV/hplanck
-eV2mum = lambda E:c/eV2Hz(E)/mum
+eV2Hz   = lambda E:E*eV/hplanck
+eV2mum  = lambda E:c/eV2Hz(E)/mum
+keV2A   = lambda E:c/eV2Hz(E*1000)/A
 meV2THz = lambda E:E*meV/hplanck/1e12
 THz2meV = lambda nu: hplanck*nu*THz/meV
-lam2eV = lambda lam: hplanck*c0/(lam*nm)/eV
+lam2eV  = lambda lam: hplanck*c0/(lam*nm)/eV
 lam2omega = lambda lam: 2*math.pi*c0/(lam*nm)
 T2meV = lambda T:kB*T/meV
 kT = lambda T:kB*T/meV
 omega2meV = lambda omega: hbar*omega/meV
 
-keV2v = lambda KE:math.sqrt(1 - 1/(1+np.array(KE)/mc2)**2)
-keV2lam = lambda KE:h*c0/(math.sqrt(KE*(2*emass+KE))*keV)/A
-keV2sigma = lambda KE:2*math.pi*m0*(1+KE/mc2)*keV2lam(KE)*A*eV/h**2*kV*A #rad/(m*V)
+keV2v     = lambda KE:math.sqrt(1 - 1/(1+np.array(KE)/mc2)**2)
+keV2lam   = lambda KE:h*c0/(np.sqrt(KE*(2*emass+KE))*keV)/A
+lam2keV   = lambda lam:emass*(-1+np.sqrt(1+((h*c0/keV)/(lam*A*emass))**2))
+keV2sigma = lambda KE:2*np.pi*m0*(1+KE/mc2)*keV2lam(KE)*A*eV/h**2*kV*A #rad/(m*V)
 
 #####################################################################
 #functions

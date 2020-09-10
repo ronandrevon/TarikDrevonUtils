@@ -13,6 +13,7 @@ from . import glob_colors as colors
 # Get screen info, remove toolbar
 # matplotlib.rcParams['toolbar'] = 'None'
 matplotlib.rcParams['backend'] = 'GTK3Agg'
+matplotlib.rcParams['pcolor.shading'] = 'auto'
 dpi = check_output("xdpyinfo | awk '/resolution/{print $2}'",shell=True).decode()
 dpi = np.array(dpi.strip().split('x'),dtype=int)
 screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True).decode().split('\n')
@@ -72,19 +73,18 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
             tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
             cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
-            inset=None,iOpt='Gt',
+            inset=None,iOpt='Gt',name='',opt='p',figopt='',
             std=1,**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
-    fonts,lw,ms,maker :
-    axPos : 4-list or int - ax position (see get_axPos)
+    lw,ms,marker : linewidth,markersize,marker to apply to all
+    axPos   : 4-list or int - ax position (see get_axPos)
     contour : list - x,y,z,[levels]
-    quiv : functor to gradient that will be plotted on the isocontours
-        must return shape (2,N,N)
-    imOpt : c(colorbar) h(horizontal) v(vertical)
-    cs    : C(contours),I(image),S(scatter),N(None) artist to use for colorbar
-    iOpt : displayStandards options for inset
-    kwargs : standardDisplay
+    quiv    : functor to gradient that will be plotted on the isocontours (must return shape (2,N,N))
+    imOpt   : c(colorbar) h(horizontal) v(vertical)
+    cs      : C(contours),I(image),S(scatter),N(None) artist to use for colorbar
+    iOpt    : inset displayStandards keys - ['axpos','xylims','ms','lw','lwp']
+    kwargs  : standardDisplay
     '''
     if isinstance(fonts,dict) : fonts = get_font(fonts)
     fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
@@ -106,7 +106,6 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
     add_colorbar(fig,ax,cs,imOpt,cmap,caxis=caxis)
-
     if is_3d : pltSurfs(ax,surfs)
 
     if isinstance(inset,dict):
@@ -118,7 +117,11 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
         for axis in ['top','bottom','left','right']:
             ax2.spines[axis].set_linewidth(3)
             ax2.spines[axis].set_color('g')
-    if std:standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,**kwargs)
+    if std:
+        standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,
+            name=name,opt=opt,figopt=figopt,**kwargs)
+    else:
+        disp_quick(name,ax,opt,figopt)
     return fig,ax
 
 
@@ -376,7 +379,9 @@ def get_font(d_font=dict(),dOpt=False) :
     if dOpt : keys = ['lab','leg','tick','title']
     fonts = [ font_dict[k] for k in keys]
     return  fonts
+
 def fill_inset_dict(inset_dict=dict()):
+    '''keys = ['axpos','xylims','ms','lw','lwp']'''
     keys = ['axpos','xylims','ms','lw','lwp']
     vals = [[0,0,0.25,0.25],None,30,3,2]
     full_dict = dict(zip(keys,vals))
@@ -553,16 +558,19 @@ def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
     return figpath
 
-def saveFig(fullpath,ax,png=None,fmt='',opt='1'):
-    '''opt : t(transparent) i(quality dpi=i*96)'''
+def saveFig(fullpath,ax,png=None,fmt='',figopt='1',topt=0):
+    ''' save figure with transparent option
+    - figopt : t(transparent) i(quality dpi=i*96)
+        - example : 't','1','2', 't1','t2',...
+    - topt : bool - transparent option
+    '''
     if '.' in fullpath:
         filename,fmt=fullpath,fullpath.split('.')[-1]
     else:
         if not png==None : fmt=['eps','svg','png'][png]
         filename = fullpath+'.'+fmt
-    topt = 0
-    if 't' in opt : opt,topt=opt[1:],1
-    r_dpi= 1 if not opt else int(opt); #print(r_dpi)
+    if 't' in figopt : figopt,topt=figopt[1:],1
+    r_dpi= 1 if not figopt else int(figopt); #print(r_dpi)
     plt.savefig(filename, format=fmt, dpi=r_dpi*96,transparent=topt)
     print(colors.green+'Saving figure :\n'+colors.yellow+filename+colors.black)
 
@@ -573,7 +581,7 @@ def crop_fig(name,crop):
         print(colors.yellow+name+colors.blue+' cropped to '+colors.black,cropcmd)
 
 def disp_quick(name,ax,opt,figopt):
-    if 's' in opt : saveFig(name,ax,fmt='png',opt=figopt)
+    if 's' in opt : saveFig(name,ax,fmt='png',figopt=figopt)
     if 'p' in opt : ax.figure.show()
     if 'c' in opt : plt.close(ax.figure)
 

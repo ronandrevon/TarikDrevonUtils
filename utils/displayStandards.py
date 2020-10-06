@@ -1,11 +1,13 @@
 '''Display utilities'''
 import numpy as np
 import matplotlib,os
+# import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection as PatchColl
 from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
+from scipy import ndimage
 from subprocess import check_output
 from PIL import Image
 from .glob_colors import*
@@ -69,7 +71,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt,figopt)
 
-def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
+def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
             cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
             ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
@@ -101,7 +103,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     # priority order here : scat,im,contour
     css = dict(zip(['I','S','C','N'],[None]*4))
     if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
-    if not im==None:css['I'] = pltImages(ax,im,cmap,caxis,imOpt)
+    if not im==None:css['I'] = pltImages(ax,im,cmap,caxis,imOpt,rot)
     if not scat==None:css['S'] = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
@@ -125,13 +127,13 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,
     return fig,ax
 
 
-def image_bg(im,**kwargs):
+def image_bg(im,rot=0,**kwargs):
     ''' display an image in background to data
     fig = dsp.image_bg('image.png',xylims=[0,1,0,1])
     NOTE :
     use fix_pos(fig) after the figure has been displayed
     '''
-    fig,ax = stddisp(im=im,pOpt='',opt='')
+    fig,ax = stddisp(im=im,pOpt='',opt='',rot=rot)
     ax1 = fig.add_axes([0,0,1,1],frameon=False)
     stddisp(ax=ax1,pOpt='GtX',**kwargs)
     return fig
@@ -275,7 +277,7 @@ def pltTexts(ax,texts,fsT,is_3d=0):
         for t in texts:
             c_t = 'k' if len(t)<4 else t[3]
             ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t)
-def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt=''):
+def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
     cs = None
     if isinstance(im,str):
         if '.npy' in im:
@@ -289,6 +291,7 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt=''):
                 im = None
             else:
                 image = plt.imread(im)
+                if rot:image=ndimage.rotate(image,rot)
                 cs=ax.imshow(image,cmap=cmap)#,**im_args)#,origin='upper')
                 im = None
     if isinstance(im,list):
@@ -356,17 +359,19 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
     if isinstance(figsize,str) :
         figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
     if isinstance(rc,str) :
-        rc = {'3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
+        rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
     figsize = tuple(np.array(figsize)*screen_size)
     if rc=='3d':
         wh = min(screen_size)
         figsize = (wh,wh);#print(figsize)
         fig = plt.figure(figsize=figsize,dpi=dpi[0])
-        ax = plt.subplot(111,projection='3d')
+        ax  = plt.subplot(111,projection='3d')
+    elif rc=='fig':
+        fig=plt.figure(figsize=figsize,dpi=dpi[0])
+        return fig
     else:
         fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0])
     #fig.canvas.manager.window.move(px,py)
-
     if pad : plt.tight_layout(pad)
     return fig,ax
 

@@ -66,7 +66,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
         ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='--')
     if view : ax.view_init(elev=view[0], azim=view[1])
     #title,legend,save
-    if equal :ax.axis(['equal','scaled'][is_3d]);
+    if equal :ax.axis(['equal','auto'][is_3d]);
     ax.set_title(title, {'fontsize': fsT}); #print(title)
     addLegend(ax,fsLeg,legOpt,legLoc,legElt)
     disp_quick(name,ax,opt,figopt)
@@ -534,7 +534,17 @@ def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):
 #     cb.ax.set_yticklabels(['%d' %(n) for n in Ns])
 
 def get_axPos(axPosI):
+    ''' Positions predefined
     axPos = {'T':[0.2,0.12,0.75,0.75],
+        1:[0.15, 0.11, 0.82, 0.82],
+        11:[0.1, 0.1, 0.35, 0.8],
+        12:[0.6, 0.1, 0.35, 0.8],
+        21:[0.07, 0.1, 0.9, 0.4],
+        22:[0.07, 0.6, 0.9, 0.4],
+        31:[0.15, 0.18, 0.75, 0.75]}
+    '''
+    axPos = {'T':[0.2,0.12,0.75,0.75],
+        'V':[0.1, 0.1, 0.75, 0.8],
         1:[0.15, 0.11, 0.82, 0.82],
         11:[0.1, 0.1, 0.35, 0.8],
         12:[0.6, 0.1, 0.35, 0.8],

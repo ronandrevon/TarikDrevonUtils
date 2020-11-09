@@ -38,6 +38,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     pOpt : p(setPos)X(changeXYlims)l(legOpt)t(ticksOn)e(equal),G(gridOn),g(gridmOn)
     view : [elev,azim] for 3D projection axes
     '''
+    is_3d = "3D" in str(ax.__class__)
     if isinstance(pOpt,str):
         setPos,changeXYlims,legOpt,ticksOn,equal,gridOn,gridmOn = [s in pOpt for s in 'pXlteGg']
     axPos = get_axPos(axPos); #print(changeXYlims)
@@ -331,11 +332,17 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
     return cs
 
 def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
-    '''surf : [x,y,z] or [x,y,z,c,a,lw,ec]
+    '''surf : [x,y,z] or [x,y,z,**kwargs] or [x,y,z,c,a,lw,ec]
     '''
     for surf in surfs:
         x,y,z = surf[:3]
-        if len(surf)>3 : c,a,lw,ec = surf[3:]
+        if len(surf)>3 :
+            if isinstance(surf[3],dict):
+                kwargs=surf[3]
+                ax.plot_surface(x,y,z,**kwargs)
+                return
+            else:
+                c,a,lw,ec = surf[3:]
         ax.plot_surface(x,y,z,color=c,alpha=a,linewidth=lw,edgecolor=c)
 
 def plt_contours(ax,contour,quiv,cmap,lw):
@@ -483,6 +490,7 @@ def get_lims(ax,mg,xylims=None,is_3d=0):
     return xylims
 
 def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
+    if isinstance(xylims,np.ndarray):xylims=xylims.tolist()
     xylims = get_lims(ax,mg,xylims,is_3d)
     if len(xylims)==4:
         xmin,xmax,ymin,ymax = xylims
@@ -502,7 +510,7 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
         ax.set_ylim((ymin, ymax))
     xylims = [xmin,xmax,ymin,ymax]
     if is_3d :
-        changeXYlims:ax.set_zlim((zmin, zmax))
+        if changeXYlims:ax.set_zlim3d((zmin, zmax))
         xylims +=[zmin, zmax]
     return xylims
 
@@ -536,6 +544,8 @@ def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):
 def get_axPos(axPosI):
     ''' Positions predefined
     axPos = {'T':[0.2,0.12,0.75,0.75],
+        'V':[0.1, 0.1, 0.75, 0.8],
+        'L':[0.02, 0.1, 0.75, 0.8],
         1:[0.15, 0.11, 0.82, 0.82],
         11:[0.1, 0.1, 0.35, 0.8],
         12:[0.6, 0.1, 0.35, 0.8],
@@ -545,6 +555,7 @@ def get_axPos(axPosI):
     '''
     axPos = {'T':[0.2,0.12,0.75,0.75],
         'V':[0.1, 0.1, 0.75, 0.8],
+        'L':[0.02, 0.1, 0.75, 0.8],
         1:[0.15, 0.11, 0.82, 0.82],
         11:[0.1, 0.1, 0.35, 0.8],
         12:[0.6, 0.1, 0.35, 0.8],

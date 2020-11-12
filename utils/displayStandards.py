@@ -295,16 +295,18 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
                 if rot:image=ndimage.rotate(image,rot)
                 cs=ax.imshow(image,cmap=cmap)#,**im_args)#,origin='upper')
                 im = None
+    if isinstance(im,np.ndarray): im=[im]
     if isinstance(im,list):
-        x,y,z = im[:3]
-        N = int(np.sqrt(x.shape[0]))
-        dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
-        args = {}
-        if caxis : args = {'vmin':caxis[0],'vmax':caxis[1]}
-        if len(im)>3:args['alpha']=im[3]
-        cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
-    elif isinstance(im,np.ndarray):
-        cs=ax.pcolor(im,cmap=cmap)
+        if len(im)>2:
+            x,y,z = im[:3]
+            N = int(np.sqrt(x.shape[0]))
+            dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
+            args = {}
+            if caxis : args = {'vmin':caxis[0],'vmax':caxis[1]}
+            if len(im)>3:args['alpha']=im[3]
+            cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
+        else :
+            cs=ax.pcolor(im[0],cmap=cmap)
     return cs
 def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
     '''

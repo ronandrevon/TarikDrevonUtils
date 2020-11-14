@@ -108,8 +108,8 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     if not scat==None:css['S'] = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
-    add_colorbar(fig,ax,cs,imOpt,cmap,caxis=caxis)
-    if is_3d : pltSurfs(ax,surfs)
+    add_colorbar(fig,ax,cs,imOpt,cmap,is_3d,caxis=caxis)
+    if is_3d :pltSurfs(ax,surfs)
 
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
@@ -182,18 +182,21 @@ def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
     fig,ax = stddisp(plts,labs=labs,legElt=legElt,**kwargs)
     return fig,ax,labs,legElt
 
-def add_colorbar(fig,ax,cs,imOpt,cmap,l=0.03,L=0.85,caxis=None):
+def add_colorbar(fig,ax,cs,imOpt,cmap,is_3d,l=0.03,L=0.85,caxis=None):
     if 'c' in imOpt :
         if not cs :
             if caxis==None:caxis=[0,1]
             cs = plt.cm.ScalarMappable(plt.Normalize(vmin=caxis[0],vmax=caxis[1]),cmap=cmap)
-        if 'h' in imOpt:
-            orient,tickloc='horizontal','top'
-            ax_cb = fig.add_axes([0.1,0.9,L,l])
-        else :
-            orient,tickloc = 'vertical','right'
-            ax_cb = fig.add_axes([0.9,0.1,l,L])
-        cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
+        if is_3d:
+            cb = fig.colorbar(cs,ax=ax)
+        else:
+            if 'h' in imOpt:
+                orient,tickloc='horizontal','top'
+                ax_cb = fig.add_axes([0.1,0.9,L,l])
+            else :
+                orient,tickloc = 'vertical','right'
+                ax_cb = fig.add_axes([0.9,0.1,l,L])
+                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
 
 #######################################################################
 ###### Old one

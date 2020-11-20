@@ -106,8 +106,8 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     # priority order here : scat,im,contour
     css = dict(zip(['I','S','C','N'],[None]*4))
     if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
-    if not im==None:css['I'] = pltImages(ax,im,cmap,caxis,imOpt,rot)
-    if not scat==None:css['S'] = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+    if not im==None:css['I']      = pltImages(ax,im,cmap,caxis,imOpt,rot)
+    if not scat==None:css['S']    = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
     add_colorbar(fig,ax,cs,imOpt,cmap,is_3d,caxis=caxis)
@@ -130,7 +130,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     return fig,ax
 
 
-def image_bg(im,rot=0,**kwargs):
+def image_bg(im,rot=0,name='',opt='p',figopt='',**kwargs):
     ''' display an image in background to data
     fig = dsp.image_bg('image.png',xylims=[0,1,0,1])
     NOTE :
@@ -138,7 +138,9 @@ def image_bg(im,rot=0,**kwargs):
     '''
     fig,ax = stddisp(im=im,pOpt='',opt='',rot=rot)
     ax1 = fig.add_axes([0,0,1,1],frameon=False)
-    stddisp(ax=ax1,pOpt='GtX',**kwargs)
+    fig,ax1 = stddisp(fig=fig,ax=ax1,pOpt='GtX',opt='',**kwargs)
+    fix_pos(fig)
+    disp_quick(name,ax,opt,figopt)
     return fig
 
 def fix_pos(fig):
@@ -591,7 +593,7 @@ def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
     return figpath
 
-def saveFig(fullpath,ax,png=None,fmt='',figopt='1',topt=0):
+def saveFig(fullpath,ax=None,png=None,fmt='',figopt='1',topt=0):
     ''' save figure with transparent option
     - figopt : t(transparent) i(quality dpi=i*96)
         - example : 't','1','2', 't1','t2',...

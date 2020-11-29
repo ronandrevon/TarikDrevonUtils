@@ -76,9 +76,9 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
 
 def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
-            cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cmap='jet',
-            ax=None,fig=None,figsize=(0.5,1),pad=None,rc='11',
-            inset=None,iOpt='Gt',name='',opt='p',figopt='',
+            cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cb_pos=[],cmap='jet',
+            ax=None,fig=None,cb=None,figsize=(0.5,1),pad=None,rc='11',
+            inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},
             std=1,**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
@@ -99,7 +99,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     is_3d = "3D" in str(ax.__class__) # not isinstance(ax,matplotlib.axes._subplots.Subplot) and not isinstance(ax,matplotlib.axes._axes.Axes)#;print(is_3d)
     for coll in colls : ax.add_collection(coll)
     for pp in patches : ax.add_patch(pp)
-    pltPlots(ax,plots,lw,ms,is_3d)
+    pltPlots(ax,plots,lw,ms,is_3d,pargs)
     pltTexts(ax,texts,fsT,is_3d)
 
     #note that at them moment only one cb per ax authorized
@@ -110,7 +110,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     if not scat==None:css['S']    = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
-    add_colorbar(fig,ax,cs,imOpt,cmap,is_3d,caxis=caxis)
+    add_colorbar(fig,ax,cs,cb,imOpt,cmap,is_3d,caxis=caxis,cb_pos=cb_pos)
     if is_3d :pltSurfs(ax,surfs)
 
     if isinstance(inset,dict):
@@ -186,22 +186,22 @@ def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
     fig,ax = stddisp(plts,labs=labs,legElt=legElt,**kwargs)
     return fig,ax,labs,legElt
 
-def add_colorbar(fig,ax,cs,imOpt,cmap,is_3d,l=0.03,L=0.85,caxis=None):
+def add_colorbar(fig,ax,cs=None,cb=None,imOpt='c',cmap='jet',is_3d=0,l=0.03,L=0.85,caxis=None,cb_pos=[],**kwargs):
     if 'c' in imOpt :
         if not cs :
             if caxis==None:caxis=[0,1]
             cs = plt.cm.ScalarMappable(plt.Normalize(vmin=caxis[0],vmax=caxis[1]),cmap=cmap)
         if is_3d:
-            cb = fig.colorbar(cs,ax=ax)
+            cb = fig.colorbar(cs,ax=ax,vmin=caxis[0],vmax=caxis[1],cmap=cmap)
         else:
-            if 'h' in imOpt:
-                orient,tickloc='horizontal','top'
-                ax_cb = fig.add_axes([0.1,0.9,L,l])
-            else :
-                orient,tickloc = 'vertical','right'
-                ax_cb = fig.add_axes([0.9,0.1,l,L])
-                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc)
-
+            if cb:
+                cb.mappable=cs
+            else:
+                if not cb_pos : cb_pos = [[0.9,0.1,l,L],[0.1,0.9,L,l]]['h' in imOpt]
+                orient,tickloc=[['vertical','right'],['horizontal','top']]['h' in imOpt]
+                ax_cb = fig.add_axes(cb_pos)
+                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc,**kwargs)
+        return cb
 #######################################################################
 ###### Old one
 def stdDispPlt(plots,xlabs=['',''],name='',xlims=[],axPos=[],c=['k','k'],
@@ -254,7 +254,7 @@ def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='G'):#,**kwargs)
 ########################################################################
 ### def : plot calls
 ########################################################################
-def pltPlots(ax,plots,lw0,ms0=5,is_3d=0):
+def pltPlots(ax,plots,lw0,ms0=5,is_3d=0,pargs={}):
     ''' plots a list of plots :
         - [x,y,color]([x,y,z,color] if is_3d) + [label](optional)
     '''
@@ -273,7 +273,7 @@ def pltPlots(ax,plots,lw0,ms0=5,is_3d=0):
             lab = ''  if len(p)<4 else p[3]
             lw  = lw0 if len(p)<5 else p[4]
             c,m,l = getCML(cml)
-            ax.plot(p[0],p[1],label=lab,color=c,linestyle=l,marker=m, linewidth=lw,markersize=ms0)
+            ax.plot(p[0],p[1],label=lab,color=c,linestyle=l,marker=m, linewidth=lw,markersize=ms0,**pargs)
 def pltTexts(ax,texts,fsT,is_3d=0):
     ''''texts format : [x,y,text,color], [x,y,z,txt,color] if is_3d'''
     if texts:
@@ -311,7 +311,8 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
             args = {}
             if caxis : args = {'vmin':caxis[0],'vmax':caxis[1]}
             if len(im)>3:args['alpha']=im[3]
-            cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
+            # cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
+            cs=ax.pcolormesh(x,y,z,shading='auto',cmap=cmap,edgecolors='none',ec=None,**args)
         else :
             cs=ax.pcolor(im[0],cmap=cmap)
     return cs
@@ -387,11 +388,13 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
         return fig
     else:
         fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0])
-    #fig.canvas.manager.window.move(px,py)
+    ax.set_navigate(True)
     if pad : plt.tight_layout(pad)
     return fig,ax
 
 def get_font(d_font=dict(),dOpt=False) :
+    '''keys = ['lab','leg','tick','text','title']
+    '''
     keys = ['lab','leg','tick','text','title']
     # vals = [30,25,15,20,30]
     vals = [25,20,15,20,20]

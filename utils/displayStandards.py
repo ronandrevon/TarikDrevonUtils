@@ -1,12 +1,12 @@
 '''Display utilities'''
 import numpy as np
 import matplotlib,os
+import matplotlib.pyplot as plt
 # import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection as PatchColl
 from matplotlib.patches import Rectangle
-import matplotlib.pyplot as plt
 from scipy import ndimage
 from subprocess import check_output
 from PIL import Image
@@ -307,7 +307,7 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
         if len(im)>2:
             x,y,z = im[:3]
             N = int(np.sqrt(x.shape[0]))
-            dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
+            # dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
             args = {}
             if caxis : args = {'vmin':caxis[0],'vmax':caxis[1]}
             if len(im)>3:args['alpha']=im[3]

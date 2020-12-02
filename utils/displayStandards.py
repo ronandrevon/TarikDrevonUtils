@@ -314,7 +314,8 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
             # cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
             cs=ax.pcolormesh(x,y,z,shading='auto',cmap=cmap,edgecolors='none',ec=None,**args)
         else :
-            cs=ax.pcolor(im[0],cmap=cmap)
+            # cs=ax.pcolor(im[0],cmap=cmap)
+            cs=ax.imshow(im[0],cmap=cmap)
     return cs
 def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
     '''

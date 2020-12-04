@@ -115,13 +115,14 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
 
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
+        ec = inset['ec']
         in_box = inset['xylims']
         xy,Wrect,Hrect = (in_box[0],in_box[2]),in_box[1]-in_box[0],in_box[3]-in_box[2]
-        ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec='g',lw=inset['lwp']))
+        ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec=ec,lw=inset['lwp']))
         ax2 = add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'],iOpt)
         for axis in ['top','bottom','left','right']:
             ax2.spines[axis].set_linewidth(3)
-            ax2.spines[axis].set_color('g')
+            ax2.spines[axis].set_color(ec)
     if std:
         standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,
             name=name,opt=opt,figopt=figopt,**kwargs)
@@ -244,9 +245,9 @@ def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
     ax.set_position(axPosI)
     if showOpt : plt.show()
 
-def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='G'):#,**kwargs)
+def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='GX'):#,**kwargs)
     ax2 = fig.add_axes(axPosI)
-    pltPlots(ax2,plots,lw,ms)
+    pltPlots(ax2,plots,lw,ms) #; print(xylims)
     standardDisplay(ax2,labs=['',''],xylims=xylims,setPos=False,
         xyTicks=None,xyTickLabs=[[],[]],legOpt=0,pOpt=iOpt)#,**kwargs)
     return ax2
@@ -407,8 +408,8 @@ def get_font(d_font=dict(),dOpt=False) :
 
 def fill_inset_dict(inset_dict=dict()):
     '''keys = ['axpos','xylims','ms','lw','lwp']'''
-    keys = ['axpos','xylims','ms','lw','lwp']
-    vals = [[0,0,0.25,0.25],None,30,3,2]
+    keys = ['axpos','xylims','ms','lw','lwp','ec']
+    vals = [[0,0,0.25,0.25],None,30,3,2,'g']
     full_dict = dict(zip(keys,vals))
     for k,v in inset_dict.items() : full_dict[k]=v
     return full_dict

@@ -232,7 +232,7 @@ def addyAxis(fig,ax,plots,yLab='',c='k', lw=1,ms=5,axPos=[],showOpt=1,yTicks=[],
     standardDisplay(ax2,['',yLab],c=['k',c],axPos=axPosI,xyTicks=[[],yTicks],xyTickLabs=[[],yTickLabs],
                     **kwargs)
     ax.set_position(axPosI)
-    if showOpt : fig.show()
+    # if showOpt : fig.show()
 
 def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
             xTicks=[],xTickLabs=[], **kwargs):
@@ -243,7 +243,7 @@ def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
     ax2.tick_params('x',color=c)
     ax2.set_xlabel(xLab, verticalalignment='bottom')
     ax.set_position(axPosI)
-    if showOpt : plt.show()
+    #if showOpt : plt.show()
 
 def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='GX'):#,**kwargs)
     ax2 = fig.add_axes(axPosI)

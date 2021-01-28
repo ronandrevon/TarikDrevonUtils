@@ -8,7 +8,7 @@ from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection as PatchColl
 from matplotlib.patches import Rectangle
 from scipy import ndimage
-from subprocess import check_output
+from subprocess import Popen,PIPE,check_output
 from PIL import Image
 from .glob_colors import*
 from . import glob_colors as colors
@@ -18,13 +18,24 @@ matplotlib.rcParams['backend'] = 'GTK3Agg'
 matplotlib.rcParams['pcolor.shading'] = 'auto'
 matplotlib.rc('text', usetex=True)
 # matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
-dpi = check_output("xdpyinfo | awk '/resolution/{print $2}'",shell=True).decode()
-dpi = np.array(dpi.strip().split('x'),dtype=int)
-screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True).decode().split('\n')
-#choose second monitor if present
-screen_size=screen_size[int(len(screen_size)>2)]
-screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
-
+try:
+    p = Popen("xdpyinfo | awk '/resolution/{print $2}'",shell=True,stderr=PIPE,stdout=PIPE)
+    dpi = p.communicate()[0].decode()#;print(dpi)
+    # dpi = check_output("xdpyinfo | awk '/resolution/{print $2}'",shell=True).decode()
+    dpi = np.array(dpi.strip().split('x'),dtype=int)
+except:
+    print('using dpi=96')
+    dpi =[96]*2
+try:
+    p = Popen("xrandr | grep \"*+\" | awk '{print $1}'",shell=True,stderr=PIPE,stdout=PIPE)
+    screen_size = p.communicate()[0].decode().split('\n')
+    # screen_size = check_output("xrandr | grep \"*+\" | awk '{print $1}'",shell=True).decode().split('\n')
+    #choose second monitor if present
+    screen_size=screen_size[int(len(screen_size)>2)]
+    screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
+except:
+    print('using screenszie=[20.0,11.25] inches')
+    screen_size=np.array([20.  , 11.25])
 
 ###########################################################################
 #def : plotting standard
@@ -59,8 +70,8 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims)#;print(changeXYlims,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
-    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='in')
-    ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='in')
+    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='out')
+    ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='out')
     if is_3d : ax.tick_params('z',labelsize=fsL,colors=c[1])
     ax.grid(False);#print(gridOn,gridmOn)
     if gridOn  : ax.grid(gridOn,which='major',color=(0.9,0.9,0.9),linestyle='-')

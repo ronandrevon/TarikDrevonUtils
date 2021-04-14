@@ -39,6 +39,13 @@ except:
     print('using screenszie=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
     noscreen=True
+try:
+    fig,ax = plt.subplots()
+    ax.set_title('testing $\AA^{-1}$')
+    fig.canvas.draw()
+except:
+    matplotlib.rc('text', usetex=False)
+    print('warning setting usetex=False')
 
 ###########################################################################
 #def : plotting standard

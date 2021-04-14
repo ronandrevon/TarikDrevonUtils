@@ -18,6 +18,7 @@ matplotlib.rcParams['backend'] = 'GTK3Agg'
 matplotlib.rcParams['pcolor.shading'] = 'auto'
 matplotlib.rc('text', usetex=True)
 # matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
+noscreen=False
 try:
     p = Popen("xdpyinfo | awk '/resolution/{print $2}'",shell=True,stderr=PIPE,stdout=PIPE)
     dpi = p.communicate()[0].decode()#;print(dpi)
@@ -26,6 +27,7 @@ try:
 except:
     print('using dpi=96')
     dpi =[96]*2
+    noscreen=True
 try:
     p = Popen("xrandr | grep \"*+\" | awk '{print $1}'",shell=True,stderr=PIPE,stdout=PIPE)
     screen_size = p.communicate()[0].decode().split('\n')
@@ -36,6 +38,7 @@ try:
 except:
     print('using screenszie=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
+    noscreen=True
 
 ###########################################################################
 #def : plotting standard
@@ -89,8 +92,8 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
             cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cb_pos=[],cmap='jet',
             ax=None,fig=None,cb=None,figsize=(0.5,1),pad=None,rc='11',
-            inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},
-            std=1,**kwargs):
+            inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},arrows=[],
+            std=1,sargs={},pOpt=None,**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
     lw,ms,marker : linewidth,markersize,marker to apply to all
@@ -102,7 +105,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     iOpt    : inset displayStandards keys - ['axpos','xylims','ms','lw','lwp']
     kwargs  : standardDisplay
     '''
-    if isinstance(fonts,dict) : fonts = get_font(fonts)
+    if isinstance(fonts,dict) or isinstance(fonts,str): fonts = get_font(fonts)
     fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
     if not ax : fig,ax = create_fig(figsize,pad,rc)
     if ax and not axPos : axPos=ax.get_position().bounds
@@ -112,13 +115,15 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     for pp in patches : ax.add_patch(pp)
     pltPlots(ax,plots,lw,ms,is_3d,pargs)
     pltTexts(ax,texts,fsT,is_3d)
+    pltArrows(ax,arrows)
+    if pOpt=='im':pOpt,imOpt,axPos,cs = 'pt', 'c','V','I'
 
     #note that at them moment only one cb per ax authorized
     # priority order here : scat,im,contour
     css = dict(zip(['I','S','C','N'],[None]*4))
     if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
     if not im==None:css['I']      = pltImages(ax,im,cmap,caxis,imOpt,rot)
-    if not scat==None:css['S']    = pltScatter(ax,scat,'b',ms,marker,rc=='3d',cmap)
+    if not scat==None:css['S']    = pltScat(ax,scat,c='b',s=ms,marker=marker,proj_3D=rc=='3d',cmap=cmap,caxis=caxis,sargs=sargs)
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
     add_colorbar(fig,ax,cs,cb,imOpt,cmap,is_3d,caxis=caxis,cb_pos=cb_pos)
@@ -136,7 +141,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             ax2.spines[axis].set_color(ec)
     if std:
         standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,
-            name=name,opt=opt,figopt=figopt,**kwargs)
+            name=name,opt=opt,figopt=figopt,pOpt=pOpt,**kwargs)
     else:
         disp_quick(name,ax,opt,figopt)
     return fig,ax
@@ -266,6 +271,18 @@ def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='GX'):#,**kwargs)
 ########################################################################
 ### def : plot calls
 ########################################################################
+def pltArrows(ax,arrows):
+    '''arrows : list of [x,y,c]'''
+    if arrows:
+        # if arrows[0]<3:
+        for arr in arrows:
+            x,y,dx,dy,c = arr
+            plt.arrow(x,y, dx, dy,color=c)#, width=2)
+        # else:
+        #     for arr in arrows:
+        #         x,y,dx,dy = arr
+        #         plt.arrow(x,y, dx, dy, lw=2)
+
 def pltPlots(ax,plots,lw0,ms0=5,is_3d=0,pargs={}):
     ''' plots a list of plots :
         - [x,y,color]([x,y,z,color] if is_3d) + [label](optional)
@@ -329,29 +346,41 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
             # cs=ax.pcolor(im[0],cmap=cmap)
             cs=ax.imshow(im[0],cmap=cmap,**args)
     return cs
-def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet') :
+
+def pltScat(ax,scat,**kwargs):
+    cs = None
+    if len(scat):
+        if isinstance(scat,tuple):
+            for scat0 in scat:
+                kwargs['marker']=scat0[-1]
+                scat0=scat0[:-1]
+                cs = pltScatter(ax,scat=scat0,**kwargs)
+        else:
+            cs = pltScatter(ax,scat,**kwargs)
+    return cs
+
+def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet',caxis=None,sargs={}) :
     '''
     - scat : [x,y,<z>,s,c] or [x,y,<z>,c]
     - s : int or list/np.array of int
     - c : tuple,str or list/np.array of tuple/str
     '''
-    cs = None
-    if len(scat) :
-        if proj_3D:
-            x,y,z = scat[:3]
-        else :
-            x,y = scat[:2]
-        # color and marker size
-        sc = scat[2+proj_3D:]
-        if len(sc)==1 : c = sc[0]
-        elif len(sc)==2: s,c = sc
-        N=np.array(x).size
-        if isinstance(s,int) : s = [s]*N
-        if isinstance(c,tuple) or isinstance(c,str) : c = [c]*N
-        if proj_3D :
-            cs=ax.scatter3D(x,y,z,s=s,c=c,marker=marker,cmap=cmap)
-        else :
-            cs=ax.scatter(x,y,s,c,marker=marker,cmap=cmap)
+    if proj_3D:
+        x,y,z = scat[:3]
+    else :
+        x,y = scat[:2]
+    # color and marker size
+    sc = scat[2+proj_3D:]
+    if len(sc)==1 : c = sc[0]
+    elif len(sc)==2: s,c = sc
+    N=np.array(x).size
+    if isinstance(s,int) : s = [s]*N
+    if isinstance(c,tuple) or isinstance(c,str) : c = [c]*N
+    if proj_3D :
+        cs=ax.scatter3D(x,y,z,s=s,c=c,marker=marker,cmap=cmap)
+    else :
+        if caxis : sargs.update({'vmin':caxis[0],'vmax':caxis[1]})
+        cs=ax.scatter(x,y,s,c,marker=marker,cmap=cmap,**sargs)
     return cs
 
 def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
@@ -401,16 +430,26 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
         return fig
     else:
         fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0])
-    ax.set_navigate(True)
-    if pad : plt.tight_layout(pad)
+    if isinstance(ax,np.ndarray):
+        for ax0 in ax.flatten():ax0.set_navigate(True)
+    else:
+        ax.set_navigate(True)
+    # if pad : plt.tight_layout(pad)
     return fig,ax
 
 def get_font(d_font=dict(),dOpt=False) :
     '''keys = ['lab','leg','tick','text','title']
+    str - article figure alignement level : '1' '2' or '3'
     '''
     keys = ['lab','leg','tick','text','title']
     # vals = [30,25,15,20,30]
     vals = [25,20,15,20,20]
+    if isinstance(d_font,str):
+        vals = {'1':[30,25,20,30,20],
+                '2':[35,30,25,35,20],
+                '3':[40,35,30,40,20],
+            }[d_font]
+        d_font=dict(zip(keys,vals))
     font_dict = dict(zip(keys,vals))
     for k in d_font.keys() : font_dict[k] = d_font[k]
     if dOpt : keys = ['lab','leg','tick','title']
@@ -515,6 +554,7 @@ def get_lims(ax,mg,xylims=None,is_3d=0):
     return xylims
 
 def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
+    if isinstance(xylims,float) or isinstance(xylims,int):xylims=np.array([-1,1,-1,1])*xylims
     if isinstance(xylims,np.ndarray):xylims=xylims.tolist()
     xylims = get_lims(ax,mg,xylims,is_3d)
     if len(xylims)==4:
@@ -561,16 +601,11 @@ def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):
         ax.set_yticklabels(tick_labs[1])
         if is_3d : ax.set_yticklabels(tick_labs[2])
 
-# def add_cb(ax):
-#     sm = plt.cm.ScalarMappable(cmap=plt.get_cmap('Greys',ns));sm.set_array([]);
-#     cb=fig.colorbar(sm,boundaries=0.5+np.arange(ns+1),ticks=range(1,ns+1));
-#     cb.ax.set_yticklabels(['%d' %(n) for n in Ns])
-
 def get_axPos(axPosI):
     ''' Positions predefined
-    axPos = {'T':[0.2,0.12,0.75,0.75],
-        'V':[0.1, 0.1, 0.75, 0.8],
-        'L':[0.02, 0.1, 0.75, 0.8],
+    axPos = {'T':[0.2,0.12,0.75,0.75],  # Title
+        'V':[0.1, 0.1, 0.75, 0.8],      # vertical colorbar
+        'L':[0.02, 0.1, 0.75, 0.8],     #
         1:[0.15, 0.11, 0.82, 0.82],
         11:[0.1, 0.1, 0.35, 0.8],
         12:[0.6, 0.1, 0.35, 0.8],
@@ -583,11 +618,12 @@ def get_axPos(axPosI):
         'E':[0.1, 0.1, 0.75, 0.75],
         'L':[0.02, 0.1, 0.75, 0.8],
         1:[0.15, 0.11, 0.82, 0.82],
-        11:[0.1, 0.1, 0.35, 0.8],
-        12:[0.6, 0.1, 0.35, 0.8],
-        21:[0.07, 0.1, 0.9, 0.4],
-        22:[0.07, 0.6, 0.9, 0.4],
-        31:[0.15, 0.18, 0.75, 0.75]}
+        11:[0.1, 0.1, 0.35, 0.8],    # adapt label for tex images
+        12:[0.6, 0.1, 0.35, 0.8],    # adapt label for tex images
+        21:[0.07, 0.1, 0.9, 0.4],    # adapt label for tex images
+        22:[0.07, 0.6, 0.9, 0.4],    # adapt label for tex images
+        31:[0.15, 0.18, 0.75, 0.75], # adapt label for tex images
+    }
     axPosition = axPos[1]
     if isinstance(axPosI,list) or isinstance(axPosI,tuple):
         if len(axPosI)==4 : axPosition = axPosI

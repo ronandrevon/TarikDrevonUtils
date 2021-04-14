@@ -9,7 +9,7 @@ def orthogonal_proj(zfront, zback):
                         [0,1,0,0],
                         [0,0,a,b],
                         [0,0,0,zback]])
-
+# proj3d.persp_transformation = orthogonal_proj
 def set_perspective(b=False):
     importlib.reload(proj3d)
     if not b :

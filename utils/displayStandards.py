@@ -16,7 +16,6 @@ from . import glob_colors as colors
 # matplotlib.rcParams['toolbar'] = 'None'
 matplotlib.rcParams['backend'] = 'GTK3Agg'
 matplotlib.rcParams['pcolor.shading'] = 'auto'
-matplotlib.rc('text', usetex=True)
 # matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
 noscreen=False
 try:
@@ -39,28 +38,32 @@ except:
     print('using screenszie=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
     noscreen=True
-try:
-    fig,ax = plt.subplots()
-    ax.set_title('testing $\AA^{-1}$')
-    fig.canvas.draw()
-except:
-    matplotlib.rc('text', usetex=False)
-    print('warning setting usetex=False')
-
+#test if usetex=True works
+if not plt.isinteractive():
+    try:
+        matplotlib.rc('text', usetex=True)
+        fig,ax = plt.subplots()
+        ax.set_title('testing $\AA^{-1}$')
+        fig.canvas.draw()
+    except:
+        matplotlib.rc('text', usetex=False)
+        print('warning setting usetex=False')
+markers = list(matplotlib.markers.MarkerStyle.markers.keys())[2:-5]
 ###########################################################################
 #def : plotting standard
 ###########################################################################
-def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,view=None,
+def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,legOpt=None,view=None,
     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
     gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='best',legElt=[],
     figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
-    pOpt=None):
+    pOpt=None,bgcol=None):
     '''
     legElt : dict - {'lab1':[(1,0,0),'s-']} overrides existing handles
     opt : p(plot), s(save), c(close) '
     pOpt : p(setPos)X(changeXYlims)l(legOpt)t(ticksOn)e(equal),G(gridOn),g(gridmOn)
     view : [elev,azim] for 3D projection axes
     '''
+    if figname:name=figname
     is_3d = "3D" in str(ax.__class__)
     if isinstance(pOpt,str):
         setPos,changeXYlims,legOpt,ticksOn,equal,gridOn,gridmOn = [s in pOpt for s in 'pXlteGg']
@@ -77,6 +80,7 @@ def standardDisplay(ax,labs=['','',''],name='', xylims=[], axPos=1,legOpt=None,v
     ax.axis(['off','on'][ticksOn])
     ax.set_axisbelow(True)
     if setPos : ax.set_position(axPos);
+    if bgcol:ax.set_facecolor(bgcol)
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims)#;print(changeXYlims,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
@@ -110,6 +114,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     imOpt   : c(colorbar) h(horizontal) v(vertical)
     cs      : C(contours),I(image),S(scatter),N(None) artist to use for colorbar
     iOpt    : inset displayStandards keys - ['axpos','xylims','ms','lw','lwp']
+    pOpt    : 'im' default for plotting an image with colorbar etc...
     kwargs  : standardDisplay
     '''
     if isinstance(fonts,dict) or isinstance(fonts,str): fonts = get_font(fonts)
@@ -123,7 +128,9 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     pltPlots(ax,plots,lw,ms,is_3d,pargs)
     pltTexts(ax,texts,fsT,is_3d)
     pltArrows(ax,arrows)
-    if pOpt=='im':pOpt,imOpt,axPos,cs = 'pt', 'c','V','I'
+    if pOpt=='im':
+        pOpt,imOpt,axPos,cs = 'pt', 'c','V','I'
+        if 'xylims' in kwargs.keys():pOpt+='X'
 
     #note that at them moment only one cb per ax authorized
     # priority order here : scat,im,contour
@@ -320,7 +327,7 @@ def pltTexts(ax,texts,fsT,is_3d=0):
     else:
         for t in texts:
             c_t = 'k' if len(t)<4 else t[3]
-            ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t)
+            ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t,horizontalalignment='center')
 def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
     cs = None
     if isinstance(im,str):
@@ -422,11 +429,15 @@ def create_fig(figsize=(0.5,1),pad=None,rc='11') :
         str   : f(full),12(half),22(quarter)
         rc    : str or list - layout arrangement : '3d','11','22',...
     '''
+
     if isinstance(figsize,str) :
         figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
     if isinstance(rc,str) :
         rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
-    figsize = tuple(np.array(figsize)*screen_size)
+    if isinstance(figsize,int) :
+        figsize = (figsize,figsize)
+    else:
+        figsize = tuple(np.array(figsize)*screen_size)
     if rc=='3d':
         wh = min(screen_size)
         figsize = (wh,wh);#print(figsize)
@@ -561,7 +572,11 @@ def get_lims(ax,mg,xylims=None,is_3d=0):
     return xylims
 
 def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
-    if isinstance(xylims,float) or isinstance(xylims,int):xylims=np.array([-1,1,-1,1])*xylims
+    if isinstance(xylims,float) or isinstance(xylims,int):
+        if is_3d:
+            xylims=np.array([-1,1,-1,1,-1,1])*xylims
+        else:
+            xylims=np.array([-1,1,-1,1])*xylims
     if isinstance(xylims,np.ndarray):xylims=xylims.tolist()
     xylims = get_lims(ax,mg,xylims,is_3d)
     if len(xylims)==4:
@@ -680,9 +695,9 @@ def disp_quick(name,ax,opt,figopt):
     if 'p' in opt : ax.figure.show()
     if 'c' in opt : plt.close(ax.figure)
 
-def im2gif(figpattern,fmt='svg'):
+def im2gif(figpattern,fmt='svg',v=1):
     cmd='im2gif '+figpattern +' ' + fmt
-    print(colors.magenta+cmd+'  ...'+colors.black)
+    if v:print(colors.magenta+cmd+colors.black)
     out=check_output(['/bin/bash','-i','-c',cmd]).decode()
     print(colors.green+out+colors.black)
 

@@ -15,7 +15,7 @@ from . import glob_colors as colors
 # Get screen info, remove toolbar
 # matplotlib.rcParams['toolbar'] = 'None'
 matplotlib.rcParams['backend'] = 'GTK3Agg'
-matplotlib.rcParams['pcolor.shading'] = 'auto'
+# matplotlib.rcParams['pcolor.shading'] = 'auto'
 # matplotlib.rcParams['text.latex.preamble']=[r"\usepackage{amsmath}"]
 noscreen=False
 try:
@@ -38,17 +38,20 @@ except:
     print('using screenszie=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
     noscreen=True
-#test if usetex=True works
-if not plt.isinteractive():
-    try:
-        matplotlib.rc('text', usetex=True)
-        fig,ax = plt.subplots()
-        ax.set_title('testing $\AA^{-1}$')
-        fig.canvas.draw()
-    except:
-        matplotlib.rc('text', usetex=False)
-        print('warning setting usetex=False')
+#test if usetex=True works(pain in the ... this usetex)
+matplotlib.rc('text', usetex=False)
+# if not plt.isinteractive():
+#     try:
+#         matplotlib.rc('text', usetex=True)
+#         fig,ax = plt.subplots()
+#         ax.set_title('testing $\AA^{-1}$')
+#         fig.canvas.draw()
+#         plt.close()
+#     except:
+#         matplotlib.rc('text', usetex=False)
+#         print('warning setting usetex=False')
 markers = list(matplotlib.markers.MarkerStyle.markers.keys())[2:-5]
+
 ###########################################################################
 #def : plotting standard
 ###########################################################################
@@ -102,7 +105,7 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
 def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             tricont=None,contour=None,quiv=None,surfs=[],caxis=None,
             cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cb_pos=[],cmap='jet',
-            ax=None,fig=None,cb=None,figsize=(0.5,1),pad=None,rc='11',
+            ax=None,fig=None,cb=None,figsize=[0.5,1],pad=None,rc='11',
             inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},arrows=[],
             std=1,sargs={},pOpt=None,**kwargs):
     '''
@@ -123,21 +126,22 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     if ax and not axPos : axPos=ax.get_position().bounds
     #add lines,patches,texts,scatters
     is_3d = "3D" in str(ax.__class__) # not isinstance(ax,matplotlib.axes._subplots.Subplot) and not isinstance(ax,matplotlib.axes._axes.Axes)#;print(is_3d)
-    for coll in colls : ax.add_collection(coll)
-    for pp in patches : ax.add_patch(pp)
-    pltPlots(ax,plots,lw,ms,is_3d,pargs)
-    pltTexts(ax,texts,fsT,is_3d)
-    pltArrows(ax,arrows)
-    if pOpt=='im':
-        pOpt,imOpt,axPos,cs = 'pt', 'c','V','I'
-        if 'xylims' in kwargs.keys():pOpt+='X'
-
     #note that at them moment only one cb per ax authorized
     # priority order here : scat,im,contour
     css = dict(zip(['I','S','C','N'],[None]*4))
     if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
     if not im==None:css['I']      = pltImages(ax,im,cmap,caxis,imOpt,rot)
     if not scat==None:css['S']    = pltScat(ax,scat,c='b',s=ms,marker=marker,proj_3D=rc=='3d',cmap=cmap,caxis=caxis,sargs=sargs)
+
+    for coll in colls : ax.add_collection(coll)
+    for pp in patches : ax.add_patch(pp)
+    pltPlots(ax,plots,lw,ms,is_3d,pargs)
+    pltTexts(ax,texts,fsT,is_3d)
+    pltArrows(ax,arrows)
+    if pOpt=='im':
+        pOpt,imOpt,axPos = 'pt', 'c','V'
+        if 'xylims' in kwargs.keys():pOpt+='X'
+
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
     add_colorbar(fig,ax,cs,cb,imOpt,cmap,is_3d,caxis=caxis,cb_pos=cb_pos)
@@ -361,19 +365,28 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
             cs=ax.imshow(im[0],cmap=cmap,**args)
     return cs
 
-def pltScat(ax,scat,**kwargs):
+def pltScat(ax,scat,sargs={},**kwargs):
     cs = None
     if len(scat):
         if isinstance(scat,tuple):
             for scat0 in scat:
+                # if len(scat0)>5:
+                #     kwargs['cmap']=scat0[-1]
+                #     # print('cmap',kwargs['cmap'])
+                #     scat0=scat0[:-1]
+                if type(scat0[-1])==dict:
+                    sargs = scat0[-1]
+                    scat0=scat0[:-1]
+                    kwargs['caxis'] = None
+                    # kwargs['cmap'] = None
                 kwargs['marker']=scat0[-1]
                 scat0=scat0[:-1]
-                cs = pltScatter(ax,scat=scat0,**kwargs)
+                cs = pltScatter(ax,scat=scat0,sargs=sargs,**kwargs)
         else:
             cs = pltScatter(ax,scat,**kwargs)
     return cs
 
-def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet',caxis=None,sargs={}) :
+def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap=None,caxis=None,sargs={}) :
     '''
     - scat : [x,y,<z>,s,c] or [x,y,<z>,c]
     - s : int or list/np.array of int
@@ -393,8 +406,8 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap='jet',caxis=None,
     if proj_3D :
         cs=ax.scatter3D(x,y,z,s=s,c=c,marker=marker,cmap=cmap)
     else :
-        if caxis : sargs.update({'vmin':caxis[0],'vmax':caxis[1]})
-        cs=ax.scatter(x,y,s,c,marker=marker,cmap=cmap,**sargs)
+        if caxis : sargs.update({'cmap':cmap,'vmin':caxis[0],'vmax':caxis[1]})
+        cs=ax.scatter(x,y,s,c,marker=marker,**sargs)
     return cs
 
 def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
@@ -423,21 +436,24 @@ def plt_contours(ax,contour,quiv,cmap,lw):
 ########################################################################
 # handles and properties
 ########################################################################
-def create_fig(figsize=(0.5,1),pad=None,rc='11') :
+def create_fig(figsize=[0.5,1],pad=None,rc='11') :
     '''figsize :
-        tuple : (width,height) normalized units
+        tuple : (width,height) inches
+        list  : (width,height) normalized units
         str   : f(full),12(half),22(quarter)
         rc    : str or list - layout arrangement : '3d','11','22',...
     '''
-
-    if isinstance(figsize,str) :
-        figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
+    # print(type(figsize))
     if isinstance(rc,str) :
         rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
-    if isinstance(figsize,int) :
+    if isinstance(figsize,str) :
+        figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
+    elif isinstance(figsize,int) :
         figsize = (figsize,figsize)
-    else:
+    elif isinstance(figsize,list) :
+        # print('default')
         figsize = tuple(np.array(figsize)*screen_size)
+
     if rc=='3d':
         wh = min(screen_size)
         figsize = (wh,wh);#print(figsize)

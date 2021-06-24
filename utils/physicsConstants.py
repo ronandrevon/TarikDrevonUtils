@@ -94,6 +94,7 @@ lam2keV   = lambda lam:emass*(-1+np.sqrt(1+((h*c0/keV)/(lam*A*emass))**2))
 keV2sigma = lambda KE:2*np.pi*m0*(1+KE/mc2)*keV2lam(KE)*A*eV/h**2*kV*A #rad/(m*V)
 
 Vg2Ug = lambda Vg,k0:Vg*2*m0*(1+lam2keV(1/k0)/mc2)*q/h**2*A**2
+meff = lambda keV:1+keV/mc2
 #####################################################################
 #functions
 def E2lam(E) :

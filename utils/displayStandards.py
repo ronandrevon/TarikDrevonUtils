@@ -87,7 +87,7 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims)#;print(changeXYlims,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
-    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='out')
+    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='out')#;print(xyTicks)
     ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='out')
     if is_3d : ax.tick_params('z',labelsize=fsL,colors=c[1])
     ax.grid(False);#print(gridOn,gridmOn)
@@ -95,7 +95,7 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     if gridmOn :
         ax.minorticks_on()
         ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='--')
-    if view : ax.view_init(elev=view[0], azim=view[1])
+    # if view : ax.view_init(elev=view[0], azim=view[1])
     #title,legend,save
     if equal :ax.axis(['equal','auto'][is_3d]);
     ax.set_title(title, {'fontsize': fsT}); #print(title)
@@ -107,7 +107,8 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             cs=None,lw=1,ms=5,marker='o',fonts={},axPos=1,imOpt='',cb_pos=[],cmap='jet',
             ax=None,fig=None,cb=None,figsize=[0.5,1],pad=None,rc='11',
             inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},arrows=[],
-            std=1,sargs={},pOpt=None,**kwargs):
+            std=1,sargs={},cargs={},im_args={},pOpt=None,targs={'ha':'center'},
+            cbargs={},**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
     lw,ms,marker : linewidth,markersize,marker to apply to all
@@ -121,39 +122,42 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     kwargs  : standardDisplay
     '''
     if isinstance(fonts,dict) or isinstance(fonts,str): fonts = get_font(fonts)
-    fsT = fonts[3]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
+    fsL,fsT = fonts[2:4]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
     if not ax : fig,ax = create_fig(figsize,pad,rc)
     if ax and not axPos : axPos=ax.get_position().bounds
+
     #add lines,patches,texts,scatters
     is_3d = "3D" in str(ax.__class__) # not isinstance(ax,matplotlib.axes._subplots.Subplot) and not isinstance(ax,matplotlib.axes._axes.Axes)#;print(is_3d)
     #note that at them moment only one cb per ax authorized
     # priority order here : scat,im,contour
     css = dict(zip(['I','S','C','N'],[None]*4))
-    if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw)
-    if not im==None:css['I']      = pltImages(ax,im,cmap,caxis,imOpt,rot)
+    if not contour==None:css['C'] = plt_contours(ax,contour,quiv,cmap,lw,cargs)
+    if not im==None:css['I']      = pltImages(ax,im,cmap,caxis,imOpt,rot,im_args)
     if not scat==None:css['S']    = pltScat(ax,scat,c='b',s=ms,marker=marker,proj_3D=rc=='3d',cmap=cmap,caxis=caxis,sargs=sargs)
-
     for coll in colls : ax.add_collection(coll)
     for pp in patches : ax.add_patch(pp)
     pltPlots(ax,plots,lw,ms,is_3d,pargs)
-    pltTexts(ax,texts,fsT,is_3d)
+    pltTexts(ax,texts,fsT,is_3d,targs)
     pltArrows(ax,arrows)
     if pOpt=='im':
-        pOpt,imOpt,axPos = 'pt', 'c','V'
+        pOpt,imOpt,axPos = 'ptl', 'c','V'
         if 'xylims' in kwargs.keys():pOpt+='X'
-
     # if 'c' in imOpt and contour==None and scat==None and im==None:cs=None
     if isinstance(cs,str) : cs=css[cs]
-    add_colorbar(fig,ax,cs,cb,imOpt,cmap,is_3d,caxis=caxis,cb_pos=cb_pos)
+    add_colorbar(fig,ax,cs,cb,imOpt,cmap,is_3d,caxis=caxis,cb_pos=cb_pos,fs=fsL,**cbargs)
     if is_3d :pltSurfs(ax,surfs)
 
     if isinstance(inset,dict):
         inset=fill_inset_dict(inset)
-        ec = inset['ec']
+        ec,lwp = inset['ec'],inset['lwp']
         in_box = inset['xylims']
         xy,Wrect,Hrect = (in_box[0],in_box[2]),in_box[1]-in_box[0],in_box[3]-in_box[2]
-        ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec=ec,lw=inset['lwp']))
-        ax2 = add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'],iOpt)
+        ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec=ec,lw=lwp))
+        # ax2 = add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'],iOpt)
+        inset_args = {'pOpt':'GX','setPos':False,'xyTicks':None,
+            'xyTickLabs':[[],[]],'legOpt':0}
+        inset_args.update({k:v for k,v in inset.items() if k not in ['lw','lwp','ms','ec','axpos','patches'] })
+        ax2 = add_inset(fig,plots,inset['axpos'],lw=inset['lw'],ms=inset['ms'],patches=inset['patches'],**inset_args)
         for axis in ['top','bottom','left','right']:
             ax2.spines[axis].set_linewidth(3)
             ax2.spines[axis].set_color(ec)
@@ -161,7 +165,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
         standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,
             name=name,opt=opt,figopt=figopt,pOpt=pOpt,**kwargs)
     else:
-        disp_quick(name,ax,opt,figopt)
+        ck(name,ax,opt,figopt)
     return fig,ax
 
 
@@ -221,7 +225,7 @@ def display_solutions(disp_d,objs=[],key_pair=(),help=0,**kwargs):
     fig,ax = stddisp(plts,labs=labs,legElt=legElt,**kwargs)
     return fig,ax,labs,legElt
 
-def add_colorbar(fig,ax,cs=None,cb=None,imOpt='c',cmap='jet',is_3d=0,l=0.03,L=0.85,caxis=None,cb_pos=[],**kwargs):
+def add_colorbar(fig,ax,cs=None,cb=None,imOpt='c',cmap='jet',is_3d=0,l=0.03,L=0.85,caxis=None,cb_pos=[],fs=20,**kwargs):
     if 'c' in imOpt :
         if not cs :
             if caxis==None:caxis=[0,1]
@@ -235,7 +239,9 @@ def add_colorbar(fig,ax,cs=None,cb=None,imOpt='c',cmap='jet',is_3d=0,l=0.03,L=0.
                 if not cb_pos : cb_pos = [[0.9,0.1,l,L],[0.1,0.9,L,l]]['h' in imOpt]
                 orient,tickloc=[['vertical','right'],['horizontal','top']]['h' in imOpt]
                 ax_cb = fig.add_axes(cb_pos)
-                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc,**kwargs)
+                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc,
+                    **kwargs)
+                cb.ax.tick_params(labelsize=fs)
         return cb
 #######################################################################
 ###### Old one
@@ -270,7 +276,7 @@ def addyAxis(fig,ax,plots,yLab='',c='k', lw=1,ms=5,axPos=[],showOpt=1,yTicks=[],
 
 def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
             xTicks=[],xTickLabs=[], **kwargs):
-    axPosI = axPos if len(axPos)==4  else [0.13, 0.15, 0.8, 0.675]
+    axPosI = get_axPos(axPos)
     ax2 = ax.twiny()
     pltPlots(ax2,plots,lw)
     standardDisplay(ax2,[xLab,''],c=[c,'k'],axPos=axPosI,xyTicks=[xTicks,[]],xyTickLabs=[xTickLabs,[]],**kwargs)
@@ -279,23 +285,24 @@ def addxAxis(ax,plots,xLab='',c='k', lw=1,axPos=[],
     ax.set_position(axPosI)
     #if showOpt : plt.show()
 
-def add_inset(fig,plots,xylims,axPosI,lw=2,ms=5,iOpt='GX'):#,**kwargs)
+def add_inset(fig,plots,axPosI,lw=2,ms=2,patches=[],**kwargs):
+    # print(kwargs)
     ax2 = fig.add_axes(axPosI)
     pltPlots(ax2,plots,lw,ms) #; print(xylims)
-    standardDisplay(ax2,labs=['',''],xylims=xylims,setPos=False,
-        xyTicks=None,xyTickLabs=[[],[]],legOpt=0,pOpt=iOpt)#,**kwargs)
+    for pp in patches : ax2.add_patch(pp)
+    standardDisplay(ax2,labs=['',''],**kwargs)
     return ax2
 
 ########################################################################
 ### def : plot calls
 ########################################################################
 def pltArrows(ax,arrows):
-    '''arrows : list of [x,y,c]'''
+    '''arrows : list of [x,y,dx,dy,c]'''
     if arrows:
         # if arrows[0]<3:
         for arr in arrows:
             x,y,dx,dy,c = arr
-            plt.arrow(x,y, dx, dy,color=c)#, width=2)
+            plt.arrow(x,y, dx, dy,color=c, width=0.02)
         # else:
         #     for arr in arrows:
         #         x,y,dx,dy = arr
@@ -321,8 +328,10 @@ def pltPlots(ax,plots,lw0,ms0=5,is_3d=0,pargs={}):
             lw  = lw0 if len(p)<5 else p[4]
             c,m,l = getCML(cml)
             ax.plot(p[0],p[1],label=lab,color=c,linestyle=l,marker=m, linewidth=lw,markersize=ms0,**pargs)
-def pltTexts(ax,texts,fsT,is_3d=0):
+def pltTexts(ax,texts,fsT,is_3d=0,targs={}):
     ''''texts format : [x,y,text,color], [x,y,z,txt,color] if is_3d'''
+    kwargs = {'fontsize':fsT}
+    kwargs.update(targs)
     if texts:
          if not isinstance(texts[0],list) : texts = [texts]
     if is_3d :
@@ -331,8 +340,8 @@ def pltTexts(ax,texts,fsT,is_3d=0):
     else:
         for t in texts:
             c_t = 'k' if len(t)<4 else t[3]
-            ax.text(t[0],t[1],t[2],fontsize=fsT,color=c_t,horizontalalignment='center')
-def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
+            ax.text(t[0],t[1],t[2],color=c_t,**kwargs)
+def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0,im_args={}):
     cs = None
     if isinstance(im,str):
         if '.npy' in im:
@@ -359,8 +368,10 @@ def pltImages(ax,im=None,cmap='viridis',caxis=None,imOpt='',rot=0):
             # dx,dy = abs(x[0,0]-x[0,1])/2, abs(y[0,0]-y[1,0])/2
             if len(im)>3:args['alpha']=im[3]
             # cs=ax.pcolormesh(x-dx,y-dy,z,cmap=cmap,edgecolors='none',ec=None,**args)
+            args.update(im_args)
             cs=ax.pcolormesh(x,y,z,shading='auto',cmap=cmap,edgecolors='none',ec=None,**args)
         else :
+            args.update(im_args)
             # cs=ax.pcolor(im[0],cmap=cmap)
             cs=ax.imshow(im[0],cmap=cmap,**args)
     return cs
@@ -383,7 +394,7 @@ def pltScat(ax,scat,sargs={},**kwargs):
                 scat0=scat0[:-1]
                 cs = pltScatter(ax,scat=scat0,sargs=sargs,**kwargs)
         else:
-            cs = pltScatter(ax,scat,**kwargs)
+            cs = pltScatter(ax,scat,sargs=sargs,**kwargs)
     return cs
 
 def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap=None,caxis=None,sargs={}) :
@@ -397,17 +408,21 @@ def pltScatter(ax,scat,c='b',s=5,marker='o',proj_3D=False,cmap=None,caxis=None,s
     else :
         x,y = scat[:2]
     # color and marker size
+    cf = 'b'
     sc = scat[2+proj_3D:]
     if len(sc)==1 : c = sc[0]
     elif len(sc)==2: s,c = sc
     N=np.array(x).size
     if isinstance(s,int) : s = [s]*N
-    if isinstance(c,tuple) or isinstance(c,str) : c = [c]*N
+    if isinstance(c,tuple) or isinstance(c,str) : cf,c = c,[c]*N
     if proj_3D :
         cs=ax.scatter3D(x,y,z,s=s,c=c,marker=marker,cmap=cmap)
     else :
-        if caxis : sargs.update({'cmap':cmap,'vmin':caxis[0],'vmax':caxis[1]})
-        cs=ax.scatter(x,y,s,c,marker=marker,**sargs)
+        s_args = {'marker':marker}
+        if caxis : s_args.update({'cmap':cmap,'vmin':caxis[0],'vmax':caxis[1]})
+        if len(sc):s_args.update({'s':s,'c':c})#,'facecolors':cf})
+        s_args.update(sargs)
+        cs=ax.scatter(x,y,**s_args)
     return cs
 
 def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
@@ -424,8 +439,11 @@ def pltSurfs(ax,surfs,c='b',a=0.2,lw=1,ec='b'):
                 c,a,lw,ec = surf[3:]
         ax.plot_surface(x,y,z,color=c,alpha=a,linewidth=lw,edgecolor=c)
 
-def plt_contours(ax,contour,quiv,cmap,lw):
-    cs = ax.contour(*contour,cmap=cmap,linewidths=lw)
+def plt_contours(ax,contour,quiv,cmap,lw,c_args={}):
+    cargs= {'linewidths':lw}
+    if not 'colors' in c_args.keys() : cargs['cmap']=cmap
+    cargs.update(c_args)
+    cs = ax.contour(*contour,**cargs)
     if not quiv == None:
         v_cs = get_iso_contours_vertx(cs)
         x_cs,y_cs = v_cs.T
@@ -446,11 +464,13 @@ def create_fig(figsize=[0.5,1],pad=None,rc='11') :
     # print(type(figsize))
     if isinstance(rc,str) :
         rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
+    # elif type(rc) in [list,tuple] :
+    #     rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
     if isinstance(figsize,str) :
-        figsize = {'f':(1,1),'12':(0.5,1),'21':(1,0.5),'22':(0.5,0.5)}[figsize]
+        figsize = {'f':[1,1],'12':[0.5,1],'21':[1,0.5],'22':[0.5,0.5]}[figsize]
     elif isinstance(figsize,int) :
         figsize = (figsize,figsize)
-    elif isinstance(figsize,list) :
+    if isinstance(figsize,list) :
         # print('default')
         figsize = tuple(np.array(figsize)*screen_size)
 
@@ -463,12 +483,13 @@ def create_fig(figsize=[0.5,1],pad=None,rc='11') :
         fig=plt.figure(figsize=figsize,dpi=dpi[0])
         return fig
     else:
+        # print(rc)
         fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0])
     if isinstance(ax,np.ndarray):
         for ax0 in ax.flatten():ax0.set_navigate(True)
     else:
         ax.set_navigate(True)
-    # if pad : plt.tight_layout(pad)
+    if pad : plt.tight_layout(pad=pad)
     return fig,ax
 
 def get_font(d_font=dict(),dOpt=False) :
@@ -491,9 +512,9 @@ def get_font(d_font=dict(),dOpt=False) :
     return  fonts
 
 def fill_inset_dict(inset_dict=dict()):
-    '''keys = ['axpos','xylims','ms','lw','lwp']'''
-    keys = ['axpos','xylims','ms','lw','lwp','ec']
-    vals = [[0,0,0.25,0.25],None,30,3,2,'g']
+    '''keys = ['axpos','xylims','ms','lw','lwp','patches']'''
+    keys = ['axpos','xylims','ms','lw','lwp','ec','patches']
+    vals = [[0,0,0.25,0.25],None,30,3,2,'g',[]]
     full_dict = dict(zip(keys,vals))
     for k,v in inset_dict.items() : full_dict[k]=v
     return full_dict
@@ -518,8 +539,10 @@ def get_legElt(legElt):
     legE=[]
     if isinstance(legElt,dict):
         for lab,cml in legElt.items():
+            pargs = {}
+            if isinstance(cml,tuple):cml,pargs=cml
             c,m,l=getCML(cml)
-            legE+=[Line2D([0],[0],linewidth=2,linestyle=l,color=c,marker=m,label=lab)]
+            legE+=[Line2D([0],[0],linewidth=2,linestyle=l,color=c,marker=m,label=lab,**pargs)]
     return legE
 
 def addLegend(ax,fsLeg,legOpt=None,loc='upper left',legElt=[]):
@@ -597,6 +620,8 @@ def changeAxesLim(ax,mg,xylims=[],is_3d=0,changeXYlims=0):
     xylims = get_lims(ax,mg,xylims,is_3d)
     if len(xylims)==4:
         xmin,xmax,ymin,ymax = xylims
+    if len(xylims)==2:
+        (xmin,ymin),(xmax,ymax) = (0,0),xylims
     elif len(xylims)==6:
         xmin,xmax,ymin,ymax,zmin,zmax = xylims
     elif len(xylims)==3:
@@ -706,7 +731,7 @@ def crop_fig(name,crop):
         check_output(cmd,shell=True)
         print(colors.yellow+name+colors.blue+' cropped to '+colors.black,cropcmd)
 
-def disp_quick(name,ax,opt,figopt):
+def disp_quick(name,ax,opt,figopt=''):
     if 's' in opt : saveFig(name,ax,fmt='png',figopt=figopt)
     if 'p' in opt : ax.figure.show()
     if 'c' in opt : plt.close(ax.figure)

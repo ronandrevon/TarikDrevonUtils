@@ -5,7 +5,7 @@ import setuptools
 
 setuptools.setup(
     name="TarikDrevonUtils",
-    version="1.0.10",
+    version="1.0.12",
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",
@@ -22,5 +22,5 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'matplotlib','numpy','scipy','colorama','pandas','pillow'],#','PyQt5'],
+        'matplotlib','numpy','scipy','colorama','pandas','pillow','pytest','pytest-html'],#','PyQt5'],
 )

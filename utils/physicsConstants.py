@@ -52,23 +52,24 @@ kmh     = km/3600
 ########################### physics constants ############################
 q       = eV                        #C
 kB      = 1.38064852*pow(10,-23)    #J/K
-eps0    = 8.854187817*pow(10,-12)   #S.I.
+eps0    = 8.8541878128*pow(10,-12)   #S.I.
 mu0     = 4*math.pi*pow(10.,-7)          #H.m
-hbar    = 1.0545718*pow(10,-34)     #J.s
+hbar    = 1.054571817*pow(10,-34)     #J.s
 h       = 2*math.pi*hbar;                #J.s
 hplanck = 2*math.pi*hbar;                #J.s
 m0      = 9.1093856*pow(10,-31)     #kg
 emass   = 510.99906                 #keV
 c       = 299792458                 #m/s
-
+G       = 6.6743015e-11
 
 # alias
 Angstrum = pow(10.,-10)
 c0       = 299792458
 
 ############### physics values ################################
-alpha_cst = 1/137
+alpha_cst = 0.0072973525693
 a0 = hbar/(m0*c*alpha_cst)/A
+Ry = 13.605693122994#eV
 mc2 = 510.99906 # keV
 hbsm = pow(hbar/nm,2)/(2*m0)/eV # eV (k=1nm^-1)
 
@@ -92,9 +93,27 @@ keV2v     = lambda KE:math.sqrt(1 - 1/(1+np.array(KE)/mc2)**2)
 keV2lam   = lambda KE:h*c0/(np.sqrt(KE*(2*emass+KE))*keV)/A
 lam2keV   = lambda lam:emass*(-1+np.sqrt(1+((h*c0/keV)/(lam*A*emass))**2))
 keV2sigma = lambda KE:2*np.pi*m0*(1+KE/mc2)*keV2lam(KE)*A*eV/h**2*kV*A #rad/(m*V)
+lam2E     = lambda lam:h**2/(2*m0*(lam*A)**2)/q
+Vg2Ug     = lambda Vg,k0:Vg*2*m0*(1+lam2keV(1/k0)/mc2)*q/h**2*A**2
+meff      = lambda keV:1+keV/mc2
 
-Vg2Ug = lambda Vg,k0:Vg*2*m0*(1+lam2keV(1/k0)/mc2)*q/h**2*A**2
-meff = lambda keV:1+keV/mc2
+keV2lam0   = lambda KE:h/np.sqrt(2*KE*keV*m0)/A
+lam2keV0   = lambda lam:h**2/(2*m0*(lam*A)**2)/q/1e3
+keV2sigma0 = lambda KE:2*np.pi*m0*keV2lam0(KE)*A*eV/h**2*kV*A #rad/(m*V)
+
+kV2eA = lambda kV:kV*1e3/(q/(4*np.pi*eps0*A))
+V2eA  = lambda V:V/(q/(4*np.pi*eps0*A))
+eA2V = lambda eA:eA*(q/(4*np.pi*eps0*A))
+
+def V2kp(V,keV=200):
+    ''' V(kV) => kp = np.sqrt(1+V/keV)'''
+    return np.sqrt(1+V/keV)
+def r2ka(r0,keV=200,lam=0.025):
+    '''ka=2*np.pi/lam*r0'''
+    if keV:lam = keV2lam(keV)
+    ka = 2*np.pi/lam*r0
+    return ka
+
 #####################################################################
 #functions
 def E2lam(E) :

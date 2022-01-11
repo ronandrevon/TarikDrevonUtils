@@ -17,14 +17,15 @@ def set_perspective(b=False):
         proj3d.persp_transformation = orthogonal_proj
 
 class handler_3d:
-    def __init__(self,fig,e=[1,0,0],persp=False,xm=None):
+    def __init__(self,fig,e=[1,0,0],persp=False,xm0=None):
         self.dazim=5
         self.delev=5
         self.fig = fig
         self.fig.canvas.mpl_connect('key_press_event', self)
         self.e=e
         ax = fig.canvas.figure.axes[0]
-        xm0 = round(ax.get_xlim()[1])
+
+        if not xm0:xm0 = round(ax.get_xlim()[1])
         self.xm0 = xm0
         self.xm  = xm0
         self.elev,self.azim = ax.elev,ax.azim

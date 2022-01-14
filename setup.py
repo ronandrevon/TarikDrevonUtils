@@ -5,7 +5,7 @@ import setuptools
 
 setuptools.setup(
     name="TarikDrevonUtils",
-    version="1.0.12",
+    version="1.0.13",
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

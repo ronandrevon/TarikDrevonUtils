@@ -55,6 +55,7 @@ def cmp_ref(file,tol=1e-8):
                 print('No data in ref. First time test is done')
 
             a_ref = np.load(a_ref_str)
+            print(abs(a_out-a_ref).sum())
             assert abs(a_out-a_ref).sum()<tol
         return test_g
     return cmp_dec

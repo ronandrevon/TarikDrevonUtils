@@ -35,7 +35,7 @@ try:
     screen_size=screen_size[int(len(screen_size)>2)]
     screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 except:
-    print('using screenszie=[20.0,11.25] inches')
+    print('using screensize=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
     noscreen=True
 #test if usetex=True works(pain in the ... this usetex)
@@ -52,6 +52,8 @@ matplotlib.rc('text', usetex=False)
 #         print('warning setting usetex=False')
 markers = list(matplotlib.markers.MarkerStyle.markers.keys())[2:-5]
 
+
+
 ###########################################################################
 #def : plotting standard
 ###########################################################################
@@ -59,12 +61,13 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
     gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='best',legElt=[],
     figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
-    pOpt=None,bgcol=None):
+    pOpt=None,bgcol=None,tdir='out'):
     '''
     legElt : dict - {'lab1':[(1,0,0),'s-']} overrides existing handles
     opt : p(plot), s(save), c(close) '
     pOpt : p(setPos)X(changeXYlims)l(legOpt)t(ticksOn)e(equal),G(gridOn),g(gridmOn)
     view : [elev,azim] for 3D projection axes
+    tdir:tick_direction
     '''
     if figname:name=figname
     is_3d = "3D" in str(ax.__class__)
@@ -87,8 +90,8 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     #lims,ticks and grid
     xylims=changeAxesLim(ax,mg,xylims,is_3d,changeXYlims)#;print(changeXYlims,xylims)
     change_ticks(ax,xyTicks,xyTickLabs,xylims,is_3d,xyTicksm)
-    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction='out')#;print(xyTicks)
-    ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction='out')
+    ax.tick_params('x',labelsize=fsL    ,colors=c[0],direction=tdir)#;print(xyTicks)
+    ax.tick_params('y',labelsize=fsL    ,colors=c[1],direction=tdir)
     if is_3d : ax.tick_params('z',labelsize=fsL,colors=c[1])
     ax.grid(False);#print(gridOn,gridmOn)
     if gridOn  : ax.grid(gridOn,which='major',color=(0.9,0.9,0.9),linestyle='-')
@@ -154,8 +157,8 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
         xy,Wrect,Hrect = (in_box[0],in_box[2]),in_box[1]-in_box[0],in_box[3]-in_box[2]
         ax.add_patch(Rectangle(xy,Wrect,Hrect,fill=0,ec=ec,lw=lwp))
         # ax2 = add_inset(fig,plots,inset['xylims'],inset['axpos'],inset['lw'],inset['ms'],iOpt)
-        inset_args = {'pOpt':'GX','setPos':False,'xyTicks':None,
-            'xyTickLabs':[[],[]],'legOpt':0}
+        inset_args = {'pOpt':'tGX','setPos':False,'xyTicks':None,
+            'xyTickLabs':[[],[]],'tdir':'in','legOpt':0}
         inset_args.update({k:v for k,v in inset.items() if k not in ['lw','lwp','ms','ec','axpos','patches'] })
         ax2 = add_inset(fig,plots,inset['axpos'],lw=inset['lw'],ms=inset['ms'],patches=inset['patches'],**inset_args)
         for axis in ['top','bottom','left','right']:
@@ -164,18 +167,18 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     if std:
         standardDisplay(ax,is_3d=is_3d,axPos=axPos,fonts=fonts,
             name=name,opt=opt,figopt=figopt,pOpt=pOpt,**kwargs)
-    else:
-        ck(name,ax,opt,figopt)
+    # else:
+    #     ck(name,ax,opt,figopt)
     return fig,ax
 
 
-def image_bg(im,rot=0,name='',opt='p',figopt='',**kwargs):
+def image_bg(im,rot=0,name='',fig=None,ax=None,opt='p',figopt='',**kwargs):
     ''' display an image in background to data
     fig = dsp.image_bg('image.png',xylims=[0,1,0,1])
     NOTE :
     use fix_pos(fig) after the figure has been displayed
     '''
-    fig,ax = stddisp(im=im,pOpt='',opt='',rot=rot)
+    if not fig:fig,ax = stddisp(im=im,pOpt='',opt='',rot=rot)
     ax1 = fig.add_axes([0,0,1,1],frameon=False)
     fig,ax1 = stddisp(fig=fig,ax=ax1,pOpt='GtX',opt='',**kwargs)
     fix_pos(fig)
@@ -454,7 +457,7 @@ def plt_contours(ax,contour,quiv,cmap,lw,c_args={}):
 ########################################################################
 # handles and properties
 ########################################################################
-def create_fig(figsize=[0.5,1],pad=None,rc='11') :
+def create_fig(figsize=[0.5,1],pad=None,rc='11',opt='') :
     '''figsize :
         tuple : (width,height) inches
         list  : (width,height) normalized units
@@ -664,6 +667,21 @@ def change_ticks(ax,ticks,tick_labs,xylims,is_3d,ticks_m):
         ax.set_yticklabels(tick_labs[1])
         if is_3d : ax.set_yticklabels(tick_labs[2])
 
+
+axPos = {
+    'F':[0,0,1,1],
+    'T':[0.2,0.12,0.75,0.75],
+    'V':[0.1, 0.1, 0.75, 0.8],
+    'E':[0.1, 0.1, 0.75, 0.75],
+    'L':[0.02, 0.1, 0.75, 0.8],
+    1:[0.15, 0.11, 0.82, 0.82],
+    11:[0.1, 0.1, 0.35, 0.8],    # adapt label for tex images
+    12:[0.6, 0.1, 0.35, 0.8],    # adapt label for tex images
+    21:[0.07, 0.1, 0.9, 0.4],    # adapt label for tex images
+    22:[0.07, 0.6, 0.9, 0.4],    # adapt label for tex images
+    31:[0.15, 0.18, 0.75, 0.75], # adapt label for tex images
+}
+
 def get_axPos(axPosI):
     ''' Positions predefined
     axPos = {'T':[0.2,0.12,0.75,0.75],  # Title
@@ -676,17 +694,6 @@ def get_axPos(axPosI):
         22:[0.07, 0.6, 0.9, 0.4],
         31:[0.15, 0.18, 0.75, 0.75]}
     '''
-    axPos = {'T':[0.2,0.12,0.75,0.75],
-        'V':[0.1, 0.1, 0.75, 0.8],
-        'E':[0.1, 0.1, 0.75, 0.75],
-        'L':[0.02, 0.1, 0.75, 0.8],
-        1:[0.15, 0.11, 0.82, 0.82],
-        11:[0.1, 0.1, 0.35, 0.8],    # adapt label for tex images
-        12:[0.6, 0.1, 0.35, 0.8],    # adapt label for tex images
-        21:[0.07, 0.1, 0.9, 0.4],    # adapt label for tex images
-        22:[0.07, 0.6, 0.9, 0.4],    # adapt label for tex images
-        31:[0.15, 0.18, 0.75, 0.75], # adapt label for tex images
-    }
     axPosition = axPos[1]
     if isinstance(axPosI,list) or isinstance(axPosI,tuple):
         if len(axPosI)==4 : axPosition = axPosI

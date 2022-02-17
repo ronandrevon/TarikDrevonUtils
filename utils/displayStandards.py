@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.lines import Line2D
 from matplotlib.collections import PatchCollection as PatchColl
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Rectangle,Circle
 from scipy import ndimage
 from subprocess import Popen,PIPE,check_output
 from PIL import Image
@@ -57,10 +57,12 @@ markers = list(matplotlib.markers.MarkerStyle.markers.keys())[2:-5]
 ###########################################################################
 #def : plotting standard
 ###########################################################################
-def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,legOpt=None,view=None,
+def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
+    legOpt=None,view=None,
     fonts=[30,25,15,20], c=['k','k'], logOpt='',changeXYlims=True,is_3d=0,
     gridOn=True,gridmOn=False,ticksOn=True,title='',legLoc='best',legElt=[],
-    figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,opt='p',setPos=True,equal=False,
+    figopt='1',xyTicks=None,xyTicksm=None,xyTickLabs=None,mg=0.05,
+    opt='p',setPos=True,equal=False,
     pOpt=None,bgcol=None,tdir='out'):
     '''
     legElt : dict - {'lab1':[(1,0,0),'s-']} overrides existing handles
@@ -98,7 +100,7 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     if gridmOn :
         ax.minorticks_on()
         ax.grid(gridmOn,which='minor',color=(0.95,0.95,0.95),linestyle='--')
-    # if view : ax.view_init(elev=view[0], azim=view[1])
+    if view : ax.view_init(elev=view[0], azim=view[1])
     #title,legend,save
     if equal :ax.axis(['equal','auto'][is_3d]);
     ax.set_title(title, {'fontsize': fsT}); #print(title)
@@ -111,7 +113,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
             ax=None,fig=None,cb=None,figsize=[0.5,1],pad=None,rc='11',
             inset=None,iOpt='Gt',name='',opt='p',figopt='',pargs={},arrows=[],
             std=1,sargs={},cargs={},im_args={},pOpt=None,targs={'ha':'center'},
-            cbargs={},**kwargs):
+            cbargs={},unfill=False,f_args={},**kwargs):
     '''
     fonts.keys=['lab','leg','tick','text','title']
     lw,ms,marker : linewidth,markersize,marker to apply to all
@@ -122,11 +124,12 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     cs      : C(contours),I(image),S(scatter),N(None) artist to use for colorbar
     iOpt    : inset displayStandards keys - ['axpos','xylims','ms','lw','lwp']
     pOpt    : 'im' default for plotting an image with colorbar etc...
+    f_args  : plt.subplots additional arguments
     kwargs  : standardDisplay
     '''
     if isinstance(fonts,dict) or isinstance(fonts,str): fonts = get_font(fonts)
     fsL,fsT = fonts[2:4]; fonts=(np.array(fonts)[[0,1,2,4]]).tolist()
-    if not ax : fig,ax = create_fig(figsize,pad,rc)
+    if not ax : fig,ax = create_fig(figsize,pad,rc,f_args)
     if ax and not axPos : axPos=ax.get_position().bounds
 
     #add lines,patches,texts,scatters
@@ -139,6 +142,7 @@ def stddisp(plots=[],scat=None,texts=[],colls=[],patches=[],im=None,rot=0,
     if not scat==None:css['S']    = pltScat(ax,scat,c='b',s=ms,marker=marker,proj_3D=rc=='3d',cmap=cmap,caxis=caxis,sargs=sargs)
     for coll in colls : ax.add_collection(coll)
     for pp in patches : ax.add_patch(pp)
+    if unfill:pargs.update({'fillstyle':'none'})
     pltPlots(ax,plots,lw,ms,is_3d,pargs)
     pltTexts(ax,texts,fsT,is_3d,targs)
     pltArrows(ax,arrows)
@@ -457,7 +461,8 @@ def plt_contours(ax,contour,quiv,cmap,lw,c_args={}):
 ########################################################################
 # handles and properties
 ########################################################################
-def create_fig(figsize=[0.5,1],pad=None,rc='11',opt='') :
+figsizes={'f':[1,1],'12':[0.5,1],'21':[1,0.5],'22':[0.5,0.5],'im':(5,5)}
+def create_fig(figsize=[0.5,1],pad=None,rc='11',opt='',f_args={}) :
     '''figsize :
         tuple : (width,height) inches
         list  : (width,height) normalized units
@@ -470,7 +475,7 @@ def create_fig(figsize=[0.5,1],pad=None,rc='11',opt='') :
     # elif type(rc) in [list,tuple] :
     #     rc = {'fig':'fig','3d':'3d','11':[1,1],'21':[2,1],'12':[1,2],'22':[2,2]}[rc];#print(rc)
     if isinstance(figsize,str) :
-        figsize = {'f':[1,1],'12':[0.5,1],'21':[1,0.5],'22':[0.5,0.5]}[figsize]
+        figsize = figsizes[figsize]
     elif isinstance(figsize,int) :
         figsize = (figsize,figsize)
     if isinstance(figsize,list) :
@@ -480,14 +485,14 @@ def create_fig(figsize=[0.5,1],pad=None,rc='11',opt='') :
     if rc=='3d':
         wh = min(screen_size)
         figsize = (wh,wh);#print(figsize)
-        fig = plt.figure(figsize=figsize,dpi=dpi[0])
+        fig = plt.figure(figsize=figsize,dpi=dpi[0],**f_args)
         ax  = plt.subplot(111,projection='3d')
     elif rc=='fig':
-        fig=plt.figure(figsize=figsize,dpi=dpi[0])
+        fig=plt.figure(figsize=figsize,dpi=dpi[0],**f_args)
         return fig
     else:
         # print(rc)
-        fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0])
+        fig,ax = plt.subplots(nrows=rc[0],ncols=rc[1],figsize=figsize,dpi=dpi[0],**f_args)
     if isinstance(ax,np.ndarray):
         for ax0 in ax.flatten():ax0.set_navigate(True)
     else:
@@ -716,6 +721,7 @@ def get_figpath(file,rel_path):
     figpath=os.path.realpath(os.path.dirname(os.path.realpath(file))+rel_path)+'/'
     return figpath
 
+# def save_fig(fig)
 def saveFig(fullpath,ax=None,png=None,fmt='',figopt='1',topt=0):
     ''' save figure with transparent option
     - figopt : t(transparent) i(quality dpi=i*96)

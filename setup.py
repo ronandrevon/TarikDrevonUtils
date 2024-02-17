@@ -6,7 +6,7 @@ import utils
 
 setuptools.setup(
     name="TarikDrevonUtils",
-    version=utils.__version__,
+    version=utils.get_version(changelog=os.path.join('change_log.md')),
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

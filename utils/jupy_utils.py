@@ -1,4 +1,5 @@
 from IPython.display import display, Markdown, Latex
+import numpy as np
 
 def show_hkls(path,name,hkls,n=5):
     '''show figures from rocking curves '''
@@ -7,7 +8,7 @@ def show_hkls(path,name,hkls,n=5):
     imageIDs = [rep(h) for h in hkls]
     show_figs(pattern,imageIDs,n=n)
 
-def show_figs(pattern,imageIDs,n=5):
+def show_figs(pattern,imageIDs,n=5,v=0):
     '''
     display figures in table format.
     Parameters :
@@ -19,9 +20,9 @@ def show_figs(pattern,imageIDs,n=5):
     Note :
         The IDs are also used as titles in the tables
     '''
-
+    
     nrows=len(imageIDs)//n
-    hs_=np.reshape(imageIDs[:n*nrows],(imageIDs,n))
+    hs_=np.reshape(imageIDs[:n*nrows],(nrows,n))
     txt=''
     for hs in hs_:
         txt +='\n%s\n%s --\n%s\n'%(
@@ -29,5 +30,5 @@ def show_figs(pattern,imageIDs,n=5):
             ' -- | '*(len(hs)-1),
             ' | '.join([ '![](%s)' %pattern(h) for h in hs] ),
         )
-    # print(txt)
+    if v:print(txt)
     display(Markdown(txt))

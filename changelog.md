@@ -1,5 +1,5 @@
 #Change log versions
-<!-- ## 1.2dev -->
+## 1.2a
 ## 1.1
 - minor changes to display standards and physicsConstants
 - added gears and struct_meca

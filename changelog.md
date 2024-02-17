@@ -1,4 +1,7 @@
 #Change log versions
+## 1.3
+- versioning utilities
+- added jupy_utils
 ## 1.2a
 ## 1.1
 - minor changes to display standards and physicsConstants

@@ -2,11 +2,10 @@ import setuptools
 import utils,os
 #with open("latex/README.md", "r") as fh:
 #    long_description = fh.read()
-
-
+from utils import _version
 setuptools.setup(
     name="TarikDrevonUtils",
-    version=utils.get_version(changelog=os.path.join('changelog.md')),
+    version=_version.__version__,
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

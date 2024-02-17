@@ -1,5 +1,7 @@
 #print('importing...')
 import os
+from . import _version
+
 def get_version(changelog):
     '''automatically retrieves the version from changelog.md
     Parameters :
@@ -9,9 +11,35 @@ def get_version(changelog):
         version=''
         while not version:
             line = f.readline()
-            if line.startswith('##') and 'dev' not in line:
+            if line.startswith('##') : #and 'dev' not in line:
                 version = line.replace('##','').strip()
     return version
+
+def _set_version(changelog,version):
+    '''automatically retrieves the version from changelog.md
+    and  writes it into  _version.py
+    '''
+    s = """version='{version}'
+    """.format(version=version)
+
+    version_file=os.path.join(os.path.dirname(__file__),'_version.py')
+    with open(version_file,'w') as f:
+        f.write(s)
+    print('_version.py updated with version %s' %version)
+
+def _get_version(dir):
+    ''' get the current version from either _version or changelog'''
+    changelog = os.path.join(dir,"changelog.md")
+    if os.path.exists(changelog):
+        version=get_version(changelog)
+        if not _version.version == version:
+            _set_version(changelog,version)
+        return version
+    else:
+        return _version.version
+
+__version__=_get_version(os.path.join(os.path.dirname(__file__),'..'))
+
 # py standard library
 #from math import*
 import importlib as imp

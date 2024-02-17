@@ -1,11 +1,12 @@
 import setuptools
-
+import utils
 #with open("latex/README.md", "r") as fh:
 #    long_description = fh.read()
 
+
 setuptools.setup(
     name="TarikDrevonUtils",
-    version="1.0.13",
+    version=utils.__version__,
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

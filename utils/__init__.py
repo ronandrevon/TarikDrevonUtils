@@ -1,5 +1,18 @@
 #print('importing...')
-
+import os
+def get_version(changelog):
+    '''automatically retrieves the version from changelog.md
+    Parameters :
+    ------------
+    folder where the changelog.md is'''
+    with open(changelog,'r') as f:
+        version=''
+        while not version:
+            line = f.readline()
+            if line.startswith('##') and 'dev' not in line:
+                version = line.replace('##','').strip()
+    return version
+__version__ = get_version(changelog=os.path.join(os.path.dirname(__file__),'..','change_log.md'))
 # py standard library
 #from math import*
 import importlib as imp

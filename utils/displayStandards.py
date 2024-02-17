@@ -24,7 +24,7 @@ try:
     # dpi = check_output("xdpyinfo | awk '/resolution/{print $2}'",shell=True).decode()
     dpi = np.array(dpi.strip().split('x'),dtype=int)
 except:
-    print('using dpi=96')
+    # print('using dpi=96')
     dpi =[96]*2
     noscreen=True
 try:
@@ -35,7 +35,7 @@ try:
     screen_size=screen_size[int(len(screen_size)>2)]
     screen_size = np.array(screen_size.split('x'),dtype=int)/dpi #inches
 except:
-    print('using screensize=[20.0,11.25] inches')
+    # print('using screensize=[20.0,11.25] inches')
     screen_size=np.array([20.  , 11.25])
     noscreen=True
 #test if usetex=True works(pain in the ... this usetex)
@@ -75,7 +75,7 @@ def standardDisplay(ax,labs=['','',''],figname=None,name='', xylims=[], axPos=1,
     is_3d = "3D" in str(ax.__class__)
     if isinstance(pOpt,str):
         setPos,changeXYlims,legOpt,ticksOn,equal,gridOn,gridmOn = [s in pOpt for s in 'pXlteGg']
-    axPos = get_axPos(axPos); #print(changeXYlims)
+    axPos = get_axPos(axPos)#; print(axPos)
     ax.name = name;
     if isinstance(fonts,dict) : fonts = get_font(fonts,dOpt=True)
     fs,fsLeg,fsL,fsT = fonts; #print(fsLeg)
@@ -244,9 +244,11 @@ def add_colorbar(fig,ax,cs=None,cb=None,imOpt='c',cmap='jet',is_3d=0,l=0.03,L=0.
                 cb.mappable=cs
             else:
                 if not cb_pos : cb_pos = [[0.9,0.1,l,L],[0.1,0.9,L,l]]['h' in imOpt]
+                if cb_pos:
+                    ax_cb = fig.add_axes(cb_pos)
+                    kwargs['cax']=ax_cb
                 orient,tickloc=[['vertical','right'],['horizontal','top']]['h' in imOpt]
-                ax_cb = fig.add_axes(cb_pos)
-                cb=fig.colorbar(cs,ax=ax,cax=ax_cb,orientation=orient,ticklocation=tickloc,
+                cb=fig.colorbar(cs,ax=ax,orientation=orient,ticklocation=tickloc,
                     **kwargs)
                 cb.ax.tick_params(labelsize=fs)
         return cb

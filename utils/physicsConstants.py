@@ -20,6 +20,8 @@ mm3     = 1e-9
 mum2    = mum**2
 mum3    = mum**3
 mum2cm2 = 1e-8
+inch2cm = 2.54
+inch2mm = 25.4
 #s       = 1.0
 kHz     = 1e3
 MHz     = 1e6
@@ -33,21 +35,29 @@ fs      = 1e-15
 g       = 1e-3
 ##energy
 #J       = 1.0
-eV      = 1.60217662*pow(10.,-19)
-keV     = eV*1e3
-meV     = eV*1e6
-meV     = eV*1e-3
-kV      = 1e3
-muW      = 1e-6
-mW      = 1e-3
-kW      = 1e3
-MJ      = 1e6
-mA      = 1e-3
-Na      = 6.02214076e23
+eV        = 1.60217662*pow(10.,-19)
+keV       = eV*1e3
+meV       = eV*1e6
+meV       = eV*1e-3
+kV        = 1e3
+muW       = 1e-6
+mW        = 1e-3
+kW        = 1e3
+MJ        = 1e6
+mA        = 1e-3
+Na        = 6.02214076e23
+atm       = 101325
+bar       = 1e5
+psi2bar   = 0.06894757
+pounds2kg = 0.4535924
 ## weird units
 grain   = 6.47989e-5
 lbs     = 0.453592
 kmh     = km/3600
+hp    = 745.7 #W
+hp2kW   = 0.7457 #kW
+lbft2Nm = 1.3558179483
+rpm     = 2*np.pi/60
 
 ########################### physics constants ############################
 q       = eV                        #C
@@ -61,7 +71,7 @@ m0      = 9.1093856*pow(10,-31)     #kg
 emass   = 510.99906                 #keV
 c       = 299792458                 #m/s
 G       = 6.6743015e-11
-
+g0      = 9.81
 # alias
 Angstrum = pow(10.,-10)
 c0       = 299792458

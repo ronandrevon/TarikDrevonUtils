@@ -5,7 +5,7 @@ import utils,os
 from utils import _version
 setuptools.setup(
     name="TarikDrevonUtils",
-    version=_version.__version__,
+    version=_version.version,
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

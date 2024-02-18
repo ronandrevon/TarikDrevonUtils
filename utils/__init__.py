@@ -16,29 +16,28 @@ def get_version(changelog):
     return version
 
 def _set_version(changelog,version):
-    '''automatically retrieves the version from changelog.md
-    and  writes it into  _version.py
+    '''writes version into into  <dir>/_version.py
+    where dir is the location of changelog
     '''
     s = """version='{version}'
     """.format(version=version)
-
-    version_file=os.path.join(os.path.dirname(__file__),'_version.py')
+    dir = os.path.dirname(changelog)
+    version_file=os.path.join(dir,'_version.py')
     with open(version_file,'w') as f:
         f.write(s)
-    print('_version.py updated with version %s' %version)
 
-def _get_version(dir):
-    ''' get the current version from either _version or changelog'''
+def _check_version(dir,version):
+    ''' check the current version from <version> is identical to the one in changelog'''
     changelog = os.path.join(dir,"changelog.md")
     if os.path.exists(changelog):
-        version=get_version(changelog)
-        if not _version.version == version:
+        new_version=get_version(changelog)
+        # print(_version.version,version,_version.version == version)
+        if not (new_version == version):
+            print('old version "%s". Updating _version.py with version "%s".' %(version,new_version))
             _set_version(changelog,version)
         return version
-    else:
-        return _version.version
 
-__version__=_get_version(os.path.join(os.path.dirname(__file__),'..'))
+__version__=_check_version(os.path.join(os.path.dirname(__file__)),_version.version)
 
 # py standard library
 #from math import*

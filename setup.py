@@ -1,8 +1,7 @@
 import setuptools
-import utils,os
-#with open("latex/README.md", "r") as fh:
-#    long_description = fh.read()
+import utils,os #should update the version if need be from the changelog
 from utils import _version
+
 setuptools.setup(
     name="TarikDrevonUtils",
     version=_version.version,

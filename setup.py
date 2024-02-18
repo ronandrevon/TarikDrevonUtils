@@ -1,10 +1,9 @@
 import setuptools
 import utils,os #should update the version if need be from the changelog
-from utils import _version
 
 setuptools.setup(
     name="TarikDrevonUtils",
-    version=_version.version,
+    version=utils.__version__,
     author="Tarik Ronan Drevon",
     author_email="ronandrevon@gmail.com",
     description="some display utilities and others",

@@ -1,5 +1,5 @@
 #Change log versions
-## 1.3a
+## 1.4a
 - versioning utilities : retrieves version number labelled as ##<version> in a changelog.md and puts it in `_version.py`. The file must be in the same folder as the `__init__.py`
 - added jupy_utils
 ## 1.2a

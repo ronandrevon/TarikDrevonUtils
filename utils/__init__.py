@@ -1,6 +1,7 @@
 #print('importing...')
 import os
-from . import _version
+import importlib as imp
+from . import _version;imp.reload(_version)
 
 def get_version(changelog):
     '''automatically retrieves the version from changelog.md
@@ -19,8 +20,7 @@ def _set_version(changelog,version):
     '''writes version into into  <dir>/_version.py
     where dir is the location of changelog
     '''
-    s = """version='{version}'
-    """.format(version=version)
+    s = """version='{version}'""".format(version=version)
     dir = os.path.dirname(changelog)
     version_file=os.path.join(dir,'_version.py')
     with open(version_file,'w') as f:
@@ -31,17 +31,21 @@ def _check_version(dir,version):
     changelog = os.path.join(dir,"changelog.md")
     if os.path.exists(changelog):
         new_version=get_version(changelog)
-        # print(_version.version,version,_version.version == version)
+        # print(new_version,version,new_version == version)
         if not (new_version == version):
-            print('old version "%s". Updating _version.py with version "%s".' %(version,new_version))
-            _set_version(changelog,version)
-        return version
+            msg = '''Warning : version number changed.
+old version "%s". Updating _version.py with version "%s".
+restart kernel to prevent this message from now on.
+''' %(version,new_version)
+            print(msg)
+            _set_version(changelog,new_version)
+    return new_version
 
 __version__=_check_version(os.path.join(os.path.dirname(__file__)),_version.version)
 
 # py standard library
 #from math import*
-import importlib as imp
+# import importlib as imp
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.special as spe
